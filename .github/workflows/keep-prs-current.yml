@@ -2,13 +2,13 @@ name: Keep pull requests current
 
 # Merges the base branch into this repository's open pull request branches when the only
 # conflicts are the mechanical ones (translation catalogs and the hashes pinned for them in
-# ATTRIBUTION.toml). See .github/keep-prs-current/keep_prs_current.py. A scheduled run is always a
-# dry run: it reports what it would merge and pushes nothing. Pushing happens only when someone
-# starts the workflow by hand with "push" ticked.
+# ATTRIBUTION.toml). See .github/keep-prs-current/keep_prs_current.py. A scheduled
+# run pushes the merge commits it can make; a person can also start it by hand, as a dry run (the
+# default) or with "push" ticked. Branches in .github/keep-prs-current/skip.txt are left alone.
 
 on:
   schedule:
-    - cron: "23 5 * * *"
+    - cron: "17 */3 * * *"
   workflow_dispatch:
     inputs:
       push:
@@ -46,6 +46,6 @@ jobs:
           PR_AUTHOR: ${{ github.repository_owner }}
           FORK_REMOTE: origin
           UPSTREAM_REMOTE: upstream
-          PUSH: ${{ github.event_name == 'workflow_dispatch' && inputs.push && '1' || '' }}
+          PUSH: ${{ (github.event_name == 'schedule' || inputs.push) && '1' || '' }}
           ONLY: ${{ inputs.only }}
         run: python3 .github/keep-prs-current/keep_prs_current.py

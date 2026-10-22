@@ -186,8 +186,9 @@ def handle(number: int, branch: str, base_sha: str, work: Path) -> tuple:
     git("add", "-A", cwd=work)
     what = ", ".join(conflicted) if conflicted else "no conflicts"
     git("-c", "user.name=pr-keeper", "-c", "user.email=pr-keeper@users.noreply.github.com", "commit", "-q", "-m",
-        f"Merge upstream {BASE} {base_sha[:8]} into {branch}\n\nMechanical merge ({what}): main's ATTRIBUTION.toml with its hashes recomputed, "
-        f"both sides' catalog rows kept.{TRAILER}", cwd=work)
+        f"Merge upstream {BASE} {base_sha[:8]} into {branch}\n\n"
+        + (f"Mechanical merge ({what}): main's copy of the pinned files, hashes recomputed, both sides' catalog rows kept." if conflicted else "Merged cleanly, no conflicts.")
+        + TRAILER, cwd=work)
     return "merged", f"{git('rev-parse', '--short', 'HEAD', cwd=work)} ({what})"
 
 
