@@ -3,9 +3,9 @@ name: Keep pull requests current
 # Merges the base branch into this repository's open pull request branches and resolves the
 # conflicts it can resolve safely. See .github/keep-prs-current/keep_prs_current.py.
 #
-# Level "pins" (the schedule): only the mechanical conflicts - the translation catalogs, the hashes
+# Level "pins": only the mechanical conflicts - the translation catalogs, the hashes
 # pinned for them in ATTRIBUTION.toml, ROADMAP.md, docs/gaps.md and Cargo.lock.
-# Level "all" (by hand for now): also a catalog key written on both sides, the parity file by
+# Level "all" (the schedule): also a catalog key written on both sides, the parity file by
 # feature id, and code (recorded resolutions, mergiraf, additions-only unions), where a branch
 # whose code was resolved must pass rustfmt, clippy and its crates' tests here before it is
 # pushed.
@@ -14,6 +14,15 @@ name: Keep pull requests current
 # some branch needs them. A scheduled run pushes the merge commits it can make; a person can start
 # it by hand, as a dry run (the default) or with "push" ticked. Branches in
 # .github/keep-prs-current/skip.txt are left alone.
+#
+# Only a branch that really conflicts with the base branch is merged, at most once a day each; a
+# pull request someone other than its author reviewed or commented on in the last 7 days (or that
+# has an approval) gets no code resolution. The level comes from the repository variable
+# KEEPER_LEVEL (all when unset; "pins" or "off" to hold it back); a manual run's input wins.
+#
+# Two jobs: "merge" builds and tests with a read-only token and hands the checked merge commits
+# over as a git bundle; "push" (the only job that can write) pushes those that are still
+# fast-forwards of the heads that were checked, and rewrites the "PR keeper digest" issue here.
 
 on:
   schedule:
@@ -39,7 +48,7 @@ on:
         default: ""
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: keep-prs-current
@@ -47,15 +56,20 @@ concurrency:
 
 jobs:
   merge:
+    if: (inputs.level || vars.KEEPER_LEVEL || 'all') != 'off'
     runs-on: ubuntu-latest
     timeout-minutes: 240
+    permissions:
+      contents: read
+    outputs:
+      planned: ${{ steps.plan.outcome == 'success' }}
     env:
       GH_TOKEN: ${{ github.token }}
       UPSTREAM_REPO: storytold/pdfcraft
       PR_AUTHOR: ${{ github.repository_owner }}
       FORK_REMOTE: origin
       UPSTREAM_REMOTE: upstream
-      LEVEL: ${{ inputs.level || 'all' }}
+      LEVEL: ${{ inputs.level || vars.KEEPER_LEVEL || 'all' }}
       PUSH: ${{ (github.event_name == 'schedule' || inputs.push) && '1' || '' }}
       ONLY: ${{ inputs.only }}
       REPLAY: ${{ inputs.replay }}
@@ -64,6 +78,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      # What earlier runs left: the keeper's pushes (one a day per branch), the merges that failed
+      # (not tried again until something changes) and the tests that fail on the base branch.
+      - name: Restore the keeper's memory
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/keeper/memory.json
+          key: keep-prs-memory-${{ github.run_id }}
+          restore-keys: keep-prs-memory-
 
       - name: Add the upstream remote
         run: |
@@ -156,9 +180,18 @@ jobs:
             ${{ runner.temp }}/keep-prs-target
           key: keep-prs-cargo-${{ steps.plan.outputs.lock }}
 
-      - name: Push and report
+      - name: Bundle the checked merge commits
         if: always() && steps.plan.outcome == 'success'
-        run: python3 "$KEEPER" finish
+        run: python3 "$KEEPER" bundle
+
+      - name: Hand them to the push job
+        if: always() && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keeper
+          path: ${{ runner.temp }}/keeper/
+          retention-days: 3
+          if-no-files-found: error
 
       - name: Save the recorded resolutions
         if: always() && env.LEVEL == 'all'
@@ -166,3 +199,41 @@ jobs:
         with:
           path: .git/rr-cache
           key: keep-prs-rerere-${{ github.run_id }}
+
+  push:
+    needs: merge
+    if: always() && needs.merge.outputs.planned == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPSTREAM_REPO: storytold/pdfcraft
+      FORK_REMOTE: origin
+      LEVEL: ${{ inputs.level || vars.KEEPER_LEVEL || 'all' }}
+      PUSH: ${{ (github.event_name == 'schedule' || inputs.push) && '1' || '' }}
+      ONLY: ${{ inputs.only }}
+      REPLAY: ${{ inputs.replay }}
+      KEEPER: .github/keep-prs-current/keep_prs_current.py
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Take the checked merge commits
+        uses: actions/download-artifact@v4
+        with:
+          name: keeper
+          path: ${{ runner.temp }}/keeper
+
+      - name: Push and report
+        run: python3 "$KEEPER" finish
+
+      - name: Save the keeper's memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/keeper/memory.json
+          key: keep-prs-memory-${{ github.run_id }}

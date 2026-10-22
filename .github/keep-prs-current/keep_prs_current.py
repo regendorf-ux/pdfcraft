@@ -6,7 +6,7 @@ ATTRIBUTION.toml, so each open pull request that also edits that file (or holds 
 shows a conflict after almost every upstream commit. This script merges the base branch into each
 open pull request branch and resolves the conflicts it knows how to resolve safely. Two levels:
 
-level "pins" (the scheduled default; the mechanical kinds only):
+level "pins" (the mechanical kinds only):
   * translation catalogs (crates/ui-egui/src/i18n/*.tsv), ROADMAP.md and docs/gaps.md: both
     sides' lines are kept (git's union merge); the catalogs are then checked for rows with the
     wrong number of columns and for the same key translated twice;
@@ -38,15 +38,30 @@ cargo builds run only for a branch whose code a resolver changed. The workflow u
 install mergiraf and the Rust toolchain only when some branch needs them.
 
 It only ever adds a plain merge commit on top of a branch (no rebase, no force push; a push that
-is not a fast-forward is refused by git), and it leaves a branch alone when it already contains
-the base branch. Dry run by default: it merges in a scratch worktree, reports what it would push,
-and pushes nothing unless PUSH=1.
+is not a fast-forward is refused by git). Dry run by default: it merges in a scratch worktree,
+reports what it would push, and pushes nothing unless PUSH=1. When it pushes:
+  * only a branch that really conflicts with the base branch (git merge-tree, without the union
+    rule): a branch that only lacks newer base commits is left alone;
+  * at most one push per branch in 24 hours;
+  * never a code resolution on a pull request a person other than its author has reviewed or
+    commented on in the last 7 days, or that has an approving review (bots do not count): the
+    mechanical kinds are still resolved there, code is left for the author ("maintainer engaged");
+  * a code resolution must keep every line either side added against the merge base (unless the
+    other side deleted that same line), and bring back no line either side deleted;
+  * a merge that failed is not tried again until the branch head or the base branch's copy of
+    one of its conflicting files changes (or the keeper itself, or a week passes);
+  * a test that fails after a merge is run again on the base branch alone; one that fails there
+    too is "upstream failing" and does not hold the merge back.
+The work is split: `resolve` and `verify` need no write access and leave the merge commits in a
+git bundle; `finish` (the only command that pushes) takes them from the bundle, checks each is a
+fast-forward of the head that was verified, pushes, and rewrites the digest issue on the fork.
 
 Commands (default: run = classify, resolve, verify, finish in one process):
   classify   which branches need work, and of which kinds (no worktree; sets the setup flags)
   resolve    merge and resolve each branch, commit to refs/keeper/<branch> (no cargo builds)
   verify     the cargo checks for the branches that need them
-  finish     push (PUSH=1) and write the report
+  bundle     the verified merge commits into a git bundle, for the job that pushes
+  finish     push (PUSH=1) from the bundle, write the report and the digest issue
   replay SHA...   re-run the resolvers on each merge commit's two parents and compare the result
                   with what was committed (never pushes)
 
@@ -61,7 +76,10 @@ Environment:
   PUSH              1 to push the merge commits (default: dry run)
   REPLAY            comma-separated merge commits: rehearse on them instead of the open branches
   KEEPER_STATE      the state file shared by the commands (default: in the system temp folder)
+  KEEPER_MEMORY     what is kept between runs: pushes, failed merges, upstream test results
+  KEEPER_BUNDLE     the git bundle with the merge commits (written by `bundle`, read by `finish`)
   KEEPER_WORK       the scratch worktree (default: in the system temp folder)
+  FORK_REPO         owner/name of the fork, for the digest issue (default: GITHUB_REPOSITORY)
 """
 from __future__ import annotations
 
@@ -87,7 +105,16 @@ LEVEL = os.environ.get("LEVEL", "pins").strip() or "pins"
 ONLY = {b.strip() for b in os.environ.get("ONLY", "").split(",") if b.strip()}
 REPLAY = [s.strip() for s in os.environ.get("REPLAY", "").split(",") if s.strip()]
 _TMP = Path(os.environ.get("RUNNER_TEMP") or tempfile.gettempdir())
-STATE = Path(os.environ.get("KEEPER_STATE") or _TMP / "keep-prs-state.json").resolve()
+_DIR = _TMP / "keeper"
+STATE = Path(os.environ.get("KEEPER_STATE") or _DIR / "state.json").resolve()
+MEMORY = Path(os.environ.get("KEEPER_MEMORY") or _DIR / "memory.json").resolve()
+BUNDLE = Path(os.environ.get("KEEPER_BUNDLE") or _DIR / "keeper.bundle").resolve()
+FORK_REPO = os.environ.get("FORK_REPO") or os.environ.get("GITHUB_REPOSITORY", "")
+DIGEST_TITLE = "PR keeper digest"
+PUSH_GAP = 24 * 3600                                   # one keeper push per branch a day
+ENGAGED_DAYS = 7
+FORGET_AFTER = 7 * 24 * 3600                           # a remembered failure is tried again after a week
+KEEPER_ID = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
 WORK = Path(os.environ.get("KEEPER_WORK") or _TMP / "keep-prs-work").resolve()
 TARGET = Path(os.environ.get("CARGO_TARGET_DIR") or _TMP / "keep-prs-target").resolve()
 # KEEPER_CARGO=0 leaves the cargo checks out (a local replay of the resolvers only).
@@ -127,7 +154,6 @@ _NAME = os.environ.get("KEEPER_NAME", "Osvaldo Duran")
 _EMAIL = os.environ.get("KEEPER_EMAIL", "338149330+regendorf-ux@users.noreply.github.com")
 for _k, _v in (("GIT_AUTHOR_NAME", _NAME), ("GIT_AUTHOR_EMAIL", _EMAIL), ("GIT_COMMITTER_NAME", _NAME), ("GIT_COMMITTER_EMAIL", _EMAIL)):
     os.environ[_k] = _v
-TRAILER = "\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 
 # ---------------------------------------------------------------- small helpers
@@ -171,7 +197,44 @@ def load_state() -> dict:
 
 
 def save_state(state: dict) -> None:
+    STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(json.dumps(state, indent=1), encoding="utf-8")
+
+
+def load_memory() -> dict:
+    """What earlier runs left: {pushes: {branch: time}, failures: {key: result}, upstream_tests:
+    {base sha: {package::test: failed}}}. Old failures are forgotten."""
+    try:
+        m = json.loads(MEMORY.read_text(encoding="utf-8")) if MEMORY.is_file() else {}
+    except ValueError:
+        m = {}
+    for k in ("pushes", "failures", "upstream_tests"):
+        m.setdefault(k, {})
+    now = time.time()
+    m["failures"] = {k: v for k, v in m["failures"].items() if now - v.get("when", 0) < FORGET_AFTER}
+    m["pushes"] = {k: v for k, v in m["pushes"].items() if now - v < 2 * PUSH_GAP}
+    return m
+
+
+def save_memory(m: dict) -> None:
+    MEMORY.parent.mkdir(parents=True, exist_ok=True)
+    MEMORY.write_text(json.dumps(m, indent=1, sort_keys=True), encoding="utf-8")
+
+
+def failure_key(item: dict) -> str:
+    """The branch head, the base branch's blob of each conflicting file, the level and the
+    keeper's own version: a failed merge is tried again only when one of them changes."""
+    blobs = []
+    for f in sorted(item.get("conflicts", [])):
+        blobs.append(f + "=" + (git("rev-parse", "-q", "--verify", item["theirs"] + ":" + f, check=False) or "none"))
+    raw = "\n".join([item["head"], LEVEL, KEEPER_ID, *blobs])
+    return hashlib.sha256(raw.encode()).hexdigest()[:20]
+
+
+def remember_failure(memory: dict, item: dict) -> None:
+    if item.get("key") and not item.get("engaged_block") and not item.get("replay"):
+        memory["failures"][item["key"]] = {"branch": item["branch"], "status": item["status"],
+                                           "detail": item["detail"][:300], "when": time.time()}
 
 
 def common_dir() -> Path:
@@ -642,6 +705,27 @@ def hazards(rel: str, text: str, base: str | None, ours: str | None, theirs: str
     return out
 
 
+def _line_counts(text: str | None) -> collections.Counter:
+    """The lines of a file that carry a word, trimmed (blank lines and lone brackets left out)."""
+    return collections.Counter(l.strip() for l in (text or "").splitlines() if re.search(r"\w", l))
+
+
+def lost_lines(result: str, base: str | None, ours: str | None, theirs: str | None) -> list:
+    """A code resolution must keep every line a side added against the merge base (unless the
+    other side deleted that same line) and bring back no line a side deleted (unless the other
+    side added it again). Counted per line, so a second copy of a line counts too."""
+    r, b, o, t = (_line_counts(x) for x in (result, base, ours, theirs))
+    out = []
+    for line in sorted(set(o) | set(t) | set(b)):
+        rr, bb = r.get(line, 0), b.get(line, 0)
+        for side, x, y in (("the pull request", o.get(line, 0), t.get(line, 0)), ("upstream", t.get(line, 0), o.get(line, 0))):
+            if x > bb and rr < x - max(0, bb - y):
+                out.append(f"lines: a line {side} added is lost: {line[:70]!r}")
+            elif x < bb and rr > x + max(0, y - bb):
+                out.append(f"lines: a line {side} deleted is back: {line[:70]!r}")
+    return out
+
+
 # ---------------------------------------------------------------- one merge
 def resolved_text(work: Path, rel: str) -> str:
     return (work / rel).read_text(encoding="utf-8", errors="replace")
@@ -652,10 +736,12 @@ def stages(work: Path, rel: str) -> tuple:
     return tuple(show(f":{n}", rel, cwd=work) for n in (1, 2, 3))
 
 
-def merge_one(ours: str, theirs: str, label: str, level: str, work: Path) -> dict:
+def merge_one(ours: str, theirs: str, label: str, level: str, work: Path, engaged: str = "", known: list = ()) -> dict:
     """Merge `theirs` into `ours` in `work` and resolve what the level allows. On success the
     merge is committed (detached HEAD) and the result has status "merged" and the commit;
-    otherwise the merge is aborted and the result says why ("by hand")."""
+    otherwise the merge is aborted and the result says why ("by hand"). `engaged`: a person
+    other than the author is working with this pull request, so no code is resolved here.
+    `known`: the files that conflict without the union rule (as GitHub shows them)."""
     t0 = time.time()
     res = {"status": "", "detail": "", "files": {}, "notes": [], "rust": [], "commit": "", "needs_cargo": False}
     git("checkout", "-q", "-f", "--detach", ours, cwd=work)
@@ -705,6 +791,10 @@ def merge_one(ours: str, theirs: str, label: str, level: str, work: Path) -> dic
             res["notes"] += notes
             continue
         # Code and other text: rerere, mergiraf, the additions-only union.
+        if engaged:
+            left.append(f"{f} (code: by hand, maintainer engaged: {engaged})")
+            res["engaged_block"] = True
+            continue
         path = work / f
         rust = bool(RUST_SIDE.search(f))
         how = None
@@ -718,7 +808,7 @@ def merge_one(ours: str, theirs: str, label: str, level: str, work: Path) -> dic
             n = len(conflict_hunks(resolved_text(work, f)))
             left.append(f"{f} ({n} hunk{'s' if n != 1 else ''} change the same lines)")
             continue
-        found = hazards(f, resolved_text(work, f), b, o, t)
+        found = hazards(f, resolved_text(work, f), b, o, t) or lost_lines(resolved_text(work, f), b, o, t)
         if found:
             left.append(f"{f} ({how}, refused: {'; '.join(x.split(': ', 1)[1] for x in found[:2])})")
             continue
@@ -767,17 +857,18 @@ def merge_one(ours: str, theirs: str, label: str, level: str, work: Path) -> dic
     if problems:
         return abort("; ".join(problems[:4]))
     git("add", "-A", cwd=work)
-    what = ", ".join(conflicted) if conflicted else "no conflicts"
+    shown = conflicted or list(known)
+    what = ", ".join(shown) if shown else "no conflicts"
     if level == "pins" or not (res["rust"] or PARITY in res["files"] or any(v == "by key" for v in res["files"].values())):
         body = (f"Mechanical merge ({what}): main's copy of the pinned files, hashes recomputed, both sides' catalog rows kept."
-                if conflicted else "Merged cleanly, no conflicts.")
+                if shown else "Merged cleanly, no conflicts.")
     else:
         body = "Resolved by the keeper:\n" + "".join(f"- {f}: {how}\n" for f, how in sorted(res["files"].items()))
         if res["notes"]:
             body += "\n" + "".join(f"- {n}\n" for n in res["notes"])
         body = body.rstrip("\n")
     res["message"] = f"Merge upstream {BASE} {theirs[:8]} into {label}\n\n{body}"
-    git("commit", "-q", "-m", res["message"] + TRAILER, cwd=work)
+    git("commit", "-q", "-m", res["message"], cwd=work)
     res["commit"] = git("rev-parse", "HEAD", cwd=work)
     res["needs_cargo"] = bool(res["rust"])
     res.update(status="merged", detail=what)
@@ -886,9 +977,43 @@ def test_plan(files: list, pkgs: list) -> list:
     return plan
 
 
-def verify_branch(item: dict, work: Path, logs: Path) -> dict:
+FAILED_TEST = re.compile(r"^test (\S+) \.\.\. FAILED$")
+
+
+def failed_tests(log: Path) -> set:
+    return {m.group(1) for l in log.read_text(encoding="utf-8", errors="replace").splitlines() if (m := FAILED_TEST.match(l.strip()))}
+
+
+def only_failed_tests(log: Path) -> bool:
+    """Did the run fail only through failing tests (it compiled, and every failed test program
+    reported its failed tests; a program that crashed or did not build counts against it)?"""
+    text = log.read_text(encoding="utf-8", errors="replace")
+    if "could not compile" in text or re.search(r"(?m)^error(\[E\d+\])?: (?!test failed|\d+ targets? failed)", text):
+        return False
+    return text.count("error: test failed, to rerun pass") <= text.count("test result: FAILED")
+
+
+def upstream_failing(pkg: str, args: list, names: set, base: str, work: Path, logs: Path, memory: dict) -> set:
+    """Which of these tests also fail on the base branch alone (remembered per base commit)."""
+    known = memory["upstream_tests"].setdefault(base, {})
+    for old in [k for k in memory["upstream_tests"] if k != base]:
+        del memory["upstream_tests"][old]               # only the current base is worth keeping
+    ask = sorted(n for n in names if f"{pkg}::{n}" not in known)
+    if ask:
+        git("checkout", "-q", "-f", "--detach", base, cwd=work)
+        log = logs / f"upstream-{base[:8]}-{pkg}.log"
+        code, _ = cargo(["test", "--locked", *args, "--", "--exact", *ask], work, log)
+        failed = failed_tests(log)
+        for n in ask:
+            known[f"{pkg}::{n}"] = n in failed
+        say(f"   on {BASE} alone: {len(failed & set(ask))} of {len(ask)} also fail")
+    return {n for n in names if known.get(f"{pkg}::{n}")}
+
+
+def verify_branch(item: dict, work: Path, logs: Path, base: str = "", memory: dict | None = None) -> dict:
     """rustfmt, clippy over the workspace (errors anywhere, warnings in the touched crates), and
-    the touched crates' tests, on the merge commit. {ok, detail, timings, checks}"""
+    the touched crates' tests, on the merge commit; a test that fails on the base branch alone
+    too is noted, not held against the merge. {ok, detail, timings, checks}"""
     git("checkout", "-q", "-f", "--detach", item["commit"], cwd=work)
     timings, checks = {}, []
     name = item["branch"].replace("/", "-")
@@ -933,9 +1058,23 @@ def verify_branch(item: dict, work: Path, logs: Path) -> dict:
     t0 = time.time()
     for pkg, args in plan:
         log = logs / f"{name}-test-{pkg}.log"
-        code, s = cargo(["test", "--locked", *args], work, log)
+        # --no-fail-fast: every test program runs, so a failure upstream has too cannot hide one
+        # that only the merge has.
+        code, s = cargo(["test", "--locked", "--no-fail-fast", *args], work, log)
         timings[f"test {pkg}"] = s
         if code:
+            names = failed_tests(log)
+            if names and base and memory is not None and only_failed_tests(log):
+                upstream = upstream_failing(pkg, args, names, base, work, logs, memory)
+                git("checkout", "-q", "-f", "--detach", item["commit"], cwd=work)
+                ours = sorted(names - upstream)
+                if not ours:
+                    checks.append("cargo test " + " ".join(args) + f" (upstream failing: {', '.join(sorted(upstream))})")
+                    item.setdefault("upstream_failing", []).extend(sorted(upstream))
+                    continue
+                return {"ok": False, "detail": f"cargo test {' '.join(args)}: fail only after the merge: {', '.join(ours[:6])}"
+                        + (f" (upstream failing too: {', '.join(sorted(upstream)[:4])})" if upstream else ""),
+                        "timings": timings, "checks": checks}
             return {"ok": False, "detail": f"cargo test {' '.join(args)}: {tail(log)}", "timings": timings, "checks": checks}
         checks.append("cargo test " + " ".join(args))
     timings["tests"] = round(time.time() - t0, 1)
@@ -948,7 +1087,110 @@ def open_branches(author: str | None) -> list:
     if author:
         args += ["--author", author]
     prs = json.loads(run(*args))
-    return sorted((p["number"], p["headRefName"]) for p in prs)
+    return sorted((p["number"], p["headRefName"], (p.get("author") or {}).get("login", "")) for p in prs)
+
+
+def _epoch(stamp: str | None) -> float:
+    if not stamp:
+        return 0.0
+    from datetime import datetime
+    return datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+
+
+def engagement(number: int, author: str) -> str:
+    """Why a person other than the pull request's author is working with it ("" when nobody is):
+    an approving review at any time, or any review or comment in the last ENGAGED_DAYS days.
+    Bots (coderabbitai[bot] and the like) do not count."""
+    since = time.time() - ENGAGED_DAYS * 86400
+    recent = []
+    for path, stamp in ((f"pulls/{number}/reviews", "submitted_at"), (f"issues/{number}/comments", "created_at"),
+                        (f"pulls/{number}/comments", "created_at")):
+        for x in json.loads(run("gh", "api", f"repos/{UPSTREAM_REPO}/{path}?per_page=100") or "[]"):
+            user = x.get("user") or {}
+            login = user.get("login", "")
+            if user.get("type") != "User" or login == author or login.endswith("[bot]"):
+                continue
+            if x.get("state") == "APPROVED":
+                return f"approved by {login}"
+            if _epoch(x.get(stamp)) >= since:
+                recent.append(f"{'review' if 'reviews' in path else 'comment'} by {login} {x.get(stamp, '')[:10]}")
+    return recent[-1] if recent else ""
+
+
+def cmd_classify() -> dict:
+    t0 = time.time()
+    git("fetch", "-q", UPSTREAM_REMOTE, BASE)
+    git("fetch", "-q", FORK_REMOTE)
+    base_sha = git("rev-parse", f"{UPSTREAM_REMOTE}/{BASE}")
+    memory = load_memory()
+    items = []
+    if REPLAY:
+        for sha in REPLAY:
+            parents = git("rev-list", "--parents", "-n", "1", sha).split()
+            if len(parents) != 3:
+                say(f"{sha}: not a merge of two parents; left out")
+                continue
+            items.append({"number": 0, "branch": f"replay {sha[:8]}", "head": parents[1], "theirs": parents[2], "replay": parents[0]})
+    else:
+        for number, branch, author in open_branches(os.environ.get("PR_AUTHOR") or None):
+            if ONLY and branch not in ONLY:
+                continue
+            item = {"number": number, "branch": branch, "theirs": base_sha, "author": author}
+            if branch in SKIP:
+                item.update(status="skip", detail="on the skip list")
+            elif git("rev-parse", "-q", "--verify", f"{FORK_REMOTE}/{branch}", check=False) == "":
+                item.update(status="skip", detail=f"no branch {branch} on {FORK_REMOTE}")
+            else:
+                item["head"] = git("rev-parse", f"{FORK_REMOTE}/{branch}")
+            items.append(item)
+    now = time.time()
+    for item in items:
+        if item.get("status"):
+            continue
+        if subprocess.run(["git", "merge-base", "--is-ancestor", item["theirs"], item["head"]]).returncode == 0:
+            item.update(status="current", detail="already contains the base branch")
+            continue
+        # The conflicts as GitHub sees them: no union rule for the catalogs here.
+        r = subprocess.run(["git", "merge-tree", "--write-tree", "--name-only", "--no-messages", *merge_strategy(LEVEL),
+                            item["head"], item["theirs"]], capture_output=True, text=True)
+        if r.returncode not in (0, 1):
+            item.update(status="error", detail=f"git merge-tree: {r.stderr.strip()[:160]}")
+            continue
+        item["conflicts"] = [n for n in r.stdout.splitlines()[1:] if n]
+        item["kinds"] = kinds_of(item["conflicts"])
+        if item.get("replay"):
+            continue
+        if r.returncode == 0:
+            item.update(status="current", detail="behind the base branch but no conflict; left alone")
+            continue
+        last = memory["pushes"].get(item["branch"])
+        if last and now - last < PUSH_GAP:
+            item.update(status="skip", detail=f"the keeper pushed here {(now - last) / 3600:.0f} h ago (once a day)")
+            continue
+        item["key"] = failure_key(item)
+        old = memory["failures"].get(item["key"])
+        if old:
+            item.update(status=old["status"], remembered=True,
+                        detail=f"as on {time.strftime('%Y-%m-%d %H:%M', time.gmtime(old['when']))} UTC (nothing changed since): {old['detail']}")
+            continue
+        if LEVEL == "all" and set(item["kinds"]) & {"code", "text"}:
+            try:
+                item["engaged"] = engagement(item["number"], item.get("author") or os.environ.get("PR_AUTHOR", ""))
+            except (RuntimeError, ValueError) as e:      # unknown: treat it as engaged
+                item["engaged"] = f"could not read the reviews ({str(e)[:60]})"
+    needs_mergiraf = LEVEL == "all" and any(
+        set(i.get("kinds", [])) & {"code", "text"} and not i.get("status") and not i.get("engaged") for i in items)
+    lock = hashlib.sha256((show(base_sha, "Cargo.lock") or "").encode()).hexdigest()[:16]
+    state = {"level": LEVEL, "base": base_sha, "push": PUSH, "items": items, "lock": lock, "keeper": KEEPER_ID,
+             "timings": {"classify": round(time.time() - t0, 1)}, "needs_mergiraf": needs_mergiraf}
+    save_state(state)
+    for i in items:
+        say(f"#{i['number']} {i['branch']}: {i.get('status') or 'to merge'}"
+            + (f" - {i['detail']}" if i.get("status") and i.get("detail") else "")
+            + (f" (conflicts: {', '.join(i['conflicts'])})" if i.get("conflicts") else "")
+            + (f" [maintainer engaged: {i['engaged']}]" if i.get("engaged") else ""))
+    output(needs_mergiraf=str(needs_mergiraf).lower(), lock=lock)
+    return state
 
 
 def kinds_of(files: list) -> list:
@@ -969,54 +1211,6 @@ def kinds_of(files: list) -> list:
     return sorted(out)
 
 
-def cmd_classify() -> dict:
-    t0 = time.time()
-    git("fetch", "-q", UPSTREAM_REMOTE, BASE)
-    git("fetch", "-q", FORK_REMOTE)
-    base_sha = git("rev-parse", f"{UPSTREAM_REMOTE}/{BASE}")
-    items = []
-    if REPLAY:
-        for sha in REPLAY:
-            parents = git("rev-list", "--parents", "-n", "1", sha).split()
-            if len(parents) != 3:
-                say(f"{sha}: not a merge of two parents; left out")
-                continue
-            items.append({"number": 0, "branch": f"replay {sha[:8]}", "head": parents[1], "theirs": parents[2], "replay": parents[0]})
-    else:
-        for number, branch in open_branches(os.environ.get("PR_AUTHOR") or None):
-            if ONLY and branch not in ONLY:
-                continue
-            item = {"number": number, "branch": branch, "theirs": base_sha}
-            if branch in SKIP:
-                item.update(status="skip", detail="on the skip list")
-            elif git("rev-parse", "-q", "--verify", f"{FORK_REMOTE}/{branch}", check=False) == "":
-                item.update(status="skip", detail=f"no branch {branch} on {FORK_REMOTE}")
-            else:
-                item["head"] = git("rev-parse", f"{FORK_REMOTE}/{branch}")
-            items.append(item)
-    with union_attributes():
-        for item in items:
-            if item.get("status"):
-                continue
-            if subprocess.run(["git", "merge-base", "--is-ancestor", item["theirs"], item["head"]]).returncode == 0:
-                item.update(status="current", detail="already contains the base branch")
-                continue
-            names = git("merge-tree", "--write-tree", "--name-only", "--no-messages", *merge_strategy(LEVEL),
-                        item["head"], item["theirs"], check=False).splitlines()[1:]
-            item["conflicts"] = [n for n in names if n]
-            item["kinds"] = kinds_of(item["conflicts"])
-    needs_mergiraf = LEVEL == "all" and any(set(i.get("kinds", [])) & {"code", "text"} for i in items)
-    lock = hashlib.sha256((show(base_sha, "Cargo.lock") or "").encode()).hexdigest()[:16]
-    state = {"level": LEVEL, "base": base_sha, "push": PUSH, "items": items, "lock": lock,
-             "timings": {"classify": round(time.time() - t0, 1)}, "needs_mergiraf": needs_mergiraf}
-    save_state(state)
-    for i in items:
-        say(f"#{i['number']} {i['branch']}: {i.get('status') or 'to merge'}"
-            + (f" (conflicts: {', '.join(i['conflicts'])})" if i.get("conflicts") else ""))
-    output(needs_mergiraf=str(needs_mergiraf).lower(), lock=lock)
-    return state
-
-
 def with_work(fn):
     """Run fn(work) with the scratch worktree (made when missing)."""
     if not (WORK / ".git").exists():
@@ -1029,9 +1223,11 @@ def with_work(fn):
 
 def cmd_resolve(state: dict) -> dict:
     t0 = time.time()
+    memory = load_memory()
 
     def go(work: Path):
-        if any(set(i.get("kinds", [])) & {"code", "text"} for i in state["items"]) and LEVEL == "all" and not REPLAY:
+        if any(set(i.get("kinds", [])) & {"code", "text"} and not i.get("status") and not i.get("engaged")
+               for i in state["items"]) and LEVEL == "all" and not REPLAY:
             t = time.time()
             heads = [i["head"] for i in state["items"] if i.get("head")]
             n = train_rerere(LEVEL, work, heads)
@@ -1041,13 +1237,16 @@ def cmd_resolve(state: dict) -> dict:
             if item.get("status"):
                 continue
             try:
-                res = merge_one(item["head"], item["theirs"], item["branch"].removeprefix("replay "), LEVEL, work)
+                res = merge_one(item["head"], item["theirs"], item["branch"].removeprefix("replay "), LEVEL, work,
+                                item.get("engaged", ""), item.get("conflicts", []))
             except RuntimeError as e:
                 git("merge", "--abort", cwd=work, check=False)
                 res = {"status": "error", "detail": str(e)[:200]}
             item.update(res)
             if item.get("commit") and not item.get("replay"):
                 git("update-ref", f"refs/keeper/{item['branch']}", item["commit"])
+            if item["status"] == "by hand":
+                remember_failure(memory, item)
             say(f"#{item['number']} {item['branch']}: {item['status']} {item['detail']}"
                 + (" (cargo checks next)" if item.get("needs_cargo") else ""))
             if item.get("replay"):
@@ -1058,6 +1257,7 @@ def cmd_resolve(state: dict) -> dict:
     needs_cargo = any(i.get("needs_cargo") for i in state["items"])
     state["needs_cargo"] = needs_cargo
     save_state(state)
+    save_memory(memory)
     output(needs_cargo=str(needs_cargo).lower())
     return state
 
@@ -1081,13 +1281,14 @@ def cmd_verify(state: dict) -> dict:
     logs = _TMP / "keep-prs-logs"
     logs.mkdir(exist_ok=True)
     t0 = time.time()
+    memory = load_memory()
 
     def go(work: Path):
         for item in state["items"]:
             if not item.get("needs_cargo") or item.get("status") != "merged":
                 continue
             say(f"#{item['number']} {item['branch']}: cargo checks for {', '.join(item['rust'])}")
-            v = verify_branch(item, work, logs)
+            v = verify_branch(item, work, logs, state.get("base", ""), memory)
             item["verify"] = v
             item.setdefault("timings", {}).update(v["timings"])
             if v["ok"]:
@@ -1096,30 +1297,118 @@ def cmd_verify(state: dict) -> dict:
             else:
                 item.update(status="by hand", detail=f"resolved, but the checks failed: {v['detail']}", commit="")
                 git("update-ref", "-d", f"refs/keeper/{item['branch']}", check=False)
+                remember_failure(memory, item)
                 say(f"   failed: {v['detail']}")
+            save_memory(memory)
     with_work(go)
     state["timings"]["verify"] = round(time.time() - t0, 1)
     save_state(state)
+    save_memory(memory)
     return state
 
 
+def ready(item: dict) -> bool:
+    """A merge commit this run made and checked (cargo too, when its code was resolved)."""
+    return (item.get("status") == "merged" and bool(item.get("commit")) and not item.get("replay")
+            and (not item.get("needs_cargo") or (item.get("verify") or {}).get("ok", False)))
+
+
+def cmd_bundle(state: dict) -> dict:
+    """The checked merge commits, as a git bundle for the job that pushes (it has no other way
+    to get them: this job cannot push)."""
+    BUNDLE.parent.mkdir(parents=True, exist_ok=True)
+    BUNDLE.unlink(missing_ok=True)
+    bundled = {i["branch"]: i["commit"] for i in state["items"] if ready(i)}
+    if bundled:
+        git("bundle", "create", str(BUNDLE), *(f"refs/keeper/{b}" for b in bundled), "--not", f"--remotes={FORK_REMOTE}")
+    state["bundled"] = bundled
+    save_state(state)
+    say(f"bundled {len(bundled)} merge commit(s)" + (f" in {BUNDLE}" if bundled else ""))
+    return state
+
+
+def pushable(item: dict, state: dict) -> str:
+    """"" when the merge commit is the one the checking job bundled and a fast-forward of the head
+    it checked, with the base it checked; otherwise why not."""
+    commit = item["commit"]
+    if state.get("bundled", {}).get(item["branch"]) != commit:
+        return "not in the bundle"
+    got = git("rev-parse", "-q", "--verify", f"refs/keeper-in/{item['branch']}", check=False)
+    if got != commit:
+        return f"the bundle holds {got[:8] or 'nothing'}, not {commit[:8]}"
+    parents = git("rev-list", "--parents", "-n", "1", commit).split()[1:]
+    if parents != [item["head"], state["base"]]:
+        return "the merge commit's parents are not the checked head and base"
+    return ""
+
+
+def digest(state: dict, rows: list) -> None:
+    """Rewrite the one digest issue on the fork (made when missing) with this run's table."""
+    if not FORK_REPO or REPLAY or ONLY:
+        return
+    server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+    run_url = f"{server}/{FORK_REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}" if os.environ.get("GITHUB_RUN_ID") else ""
+    lines = [f"Last run: {time.strftime('%Y-%m-%d %H:%M', time.gmtime())} UTC, {'push' if PUSH else 'dry run'}, "
+             f"level {state.get('level')}, base {BASE} {state.get('base', '')[:8]}" + (f" ([log]({run_url}))" if run_url else ""),
+             "", "This issue is rewritten by every run of the keeper.", "",
+             "| PR | branch | result | reason |", "|---|---|---|---|"]
+    order = {"merged": 0, "by hand": 1, "error": 2, "skip": 3, "current": 4}
+    for i in sorted(rows, key=lambda i: (order.get(i.get("status"), 5), i.get("number", 0))):
+        st = i.get("status")
+        result = {"merged": "merged", "by hand": "by hand", "skip": "skipped", "current": "current", "error": "error"}.get(st, st)
+        if st == "merged":
+            result += f" ({i.get('pushed') or 'not pushed'})"
+        reason = str(i.get("detail", ""))
+        if i.get("upstream_failing"):
+            reason += f" · upstream failing: {', '.join(i['upstream_failing'][:6])}"
+        num = f"[#{i['number']}](https://github.com/{UPSTREAM_REPO}/pull/{i['number']})" if i.get("number") else ""
+        lines.append(f"| {num} | {i['branch']} | {result} | {reason[:400].replace('|', '/').replace(chr(10), ' ')} |")
+    body = "\n".join(lines) + "\n"
+    try:
+        found = json.loads(run("gh", "issue", "list", "-R", FORK_REPO, "--state", "open", "--limit", "200", "--json", "number,title"))
+        number = next((x["number"] for x in found if x["title"] == DIGEST_TITLE), None)
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+            f.write(body)
+        if number:
+            run("gh", "issue", "edit", str(number), "-R", FORK_REPO, "--body-file", f.name)
+            say(f"digest: issue #{number} rewritten")
+        else:
+            say("digest: " + run("gh", "issue", "create", "-R", FORK_REPO, "--title", DIGEST_TITLE, "--body-file", f.name))
+    except (RuntimeError, ValueError) as e:
+        say(f"digest: not written ({str(e)[:200]})")
+
+
 def cmd_finish(state: dict) -> int:
+    memory = load_memory()
+    if PUSH and state.get("bundled"):
+        if BUNDLE.is_file():
+            git("bundle", "verify", "-q", str(BUNDLE))
+            git("fetch", "-q", str(BUNDLE), "refs/keeper/*:refs/keeper-in/*")
+        else:
+            say(f"no bundle at {BUNDLE}: nothing can be pushed")
     rows = []
     for item in state["items"]:
         pushed = ""
         if item.get("status") == "merged" and item.get("commit") and not item.get("replay"):
-            if PUSH:
+            if not ready(item):
+                pushed = "not checked: not pushed"
+            elif PUSH:
+                why = pushable(item, state) if BUNDLE.is_file() else "no bundle"
                 git("fetch", "-q", FORK_REMOTE, item["branch"], check=False)
                 now = git("rev-parse", f"{FORK_REMOTE}/{item['branch']}", check=False)
-                if now != item["head"]:
+                if why:
+                    pushed = f"not pushed: {why}"
+                elif now != item["head"]:
                     item["status"], pushed = "skip", f"the branch moved during the run ({now[:8]}); next run"
                 else:
                     git("push", "-q", FORK_REMOTE, f"{item['commit']}:refs/heads/{item['branch']}")
+                    memory["pushes"][item["branch"]] = time.time()
                     pushed = "pushed"
             else:
                 pushed = "dry run: not pushed"
         item["pushed"] = pushed
         rows.append(item)
+    save_memory(memory)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     total = {k: v for k, v in state.get("timings", {}).items()}
     lines = [f"### Keep pull requests current ({'push' if PUSH else 'dry run'}, level {state.get('level')}), "
@@ -1147,6 +1436,7 @@ def cmd_finish(state: dict) -> int:
         with open(summary, "a", encoding="utf-8") as f:
             f.write(text)
     save_state(state)
+    digest(state, rows)
     if (WORK / ".git").exists() and not os.environ.get("KEEPER_KEEP_WORK"):
         git("worktree", "remove", "--force", str(WORK), check=False)
     return 1 if any(i.get("status") == "error" for i in rows) else 0
@@ -1167,6 +1457,9 @@ def main(argv: list) -> int:
     if cmd == "verify":
         cmd_verify(load_state())
         return 0
+    if cmd == "bundle":
+        cmd_bundle(load_state())
+        return 0
     if cmd == "finish":
         return cmd_finish(load_state())
     if cmd != "run":
@@ -1174,6 +1467,7 @@ def main(argv: list) -> int:
     state = cmd_classify()
     state = cmd_resolve(state)
     state = cmd_verify(state)
+    state = cmd_bundle(state)
     return cmd_finish(state)
 
 
