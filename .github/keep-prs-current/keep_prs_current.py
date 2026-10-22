@@ -44,6 +44,21 @@ FORK_REMOTE = os.environ.get("FORK_REMOTE", "origin")
 BASE = os.environ.get("BASE", "main")
 PUSH = os.environ.get("PUSH", "") == "1"
 ONLY = {b.strip() for b in os.environ.get("ONLY", "").split(",") if b.strip()}
+
+
+def _skip_list() -> set:
+    """Branches left alone: SKIP (comma-separated) and the lines of SKIP_FILE (# starts a comment)."""
+    names = {b.strip() for b in os.environ.get("SKIP", "").split(",") if b.strip()}
+    path = Path(os.environ.get("SKIP_FILE", ".github/keep-prs-current/skip.txt"))
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                names.add(line)
+    return names
+
+
+SKIP = _skip_list()
 CATALOGS = "crates/ui-egui/src/i18n/"
 UNION_PATHS = (CATALOGS + "*.tsv", "ROADMAP.md", "docs/gaps.md")
 MECHANICAL = re.compile(r"^(crates/ui-egui/src/i18n/[^/]+\.tsv|ATTRIBUTION\.toml|ATTRIBUTION\.md|ROADMAP\.md|docs/gaps\.md|Cargo\.lock)$")
@@ -192,7 +207,10 @@ def main() -> int:
         attrs.write_text((old_attrs or "") + "".join(f"{p} merge=union\n" for p in UNION_PATHS), encoding="utf-8")
         try:
             for number, branch in open_branches(author):
-                if ONLY and branch not in ONLY:
+                if (ONLY and branch not in ONLY) or branch in SKIP:
+                    if branch in SKIP:
+                        rows.append((number, branch, "skip", "on the skip list", ""))
+                        print(f"#{number} {branch}: skip (on the skip list)", flush=True)
                     continue
                 try:
                     status, detail = handle(number, branch, base_sha, work)

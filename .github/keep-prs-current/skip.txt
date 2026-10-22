@@ -1,0 +1,6 @@
+# Branches a person is working on right now: the keeper leaves them alone.
+pr/certificate-encryption   # 2014
+pr/send-email-window   # 2376
+pr/print-area   # 2491
+pr/combine-right-click   # 2541
+pr/combine-finder   # 2741
