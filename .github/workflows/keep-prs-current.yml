@@ -101,11 +101,14 @@ jobs:
         run: python3 "$KEEPER" resolve
 
       # Everything below up to the report runs only when a branch's code was resolved.
-      - name: Make room on the disk
+      - name: Make room on the disk (only when short of it)
         if: steps.resolve.outputs.needs_cargo == 'true'
         run: |
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
+          if [ "$(df --output=avail -BG / | tail -1 | tr -dc 0-9)" -lt 40 ]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+            df -h /
+          fi
 
       - name: Linux libraries for the build
         if: steps.resolve.outputs.needs_cargo == 'true'

@@ -1142,6 +1142,7 @@ def cmd_finish(state: dict) -> int:
     text = "\n".join(lines) + "\n"
     for i in rows:
         say(f"#{i.get('number')} {i['branch']}: {i.get('status')} {i.get('detail', '')} {i.get('pushed', '')}".rstrip())
+    say("\n" + text)
     if summary:
         with open(summary, "a", encoding="utf-8") as f:
             f.write(text)
