@@ -55,7 +55,7 @@ jobs:
       PR_AUTHOR: ${{ github.repository_owner }}
       FORK_REMOTE: origin
       UPSTREAM_REMOTE: upstream
-      LEVEL: ${{ inputs.level || 'pins' }}
+      LEVEL: ${{ inputs.level || 'all' }}
       PUSH: ${{ (github.event_name == 'schedule' || inputs.push) && '1' || '' }}
       ONLY: ${{ inputs.only }}
       REPLAY: ${{ inputs.replay }}
