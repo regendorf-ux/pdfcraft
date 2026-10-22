@@ -47,6 +47,9 @@ ONLY = {b.strip() for b in os.environ.get("ONLY", "").split(",") if b.strip()}
 CATALOGS = "crates/ui-egui/src/i18n/"
 UNION_PATHS = (CATALOGS + "*.tsv", "ROADMAP.md", "docs/gaps.md")
 MECHANICAL = re.compile(r"^(crates/ui-egui/src/i18n/[^/]+\.tsv|ATTRIBUTION\.toml|ATTRIBUTION\.md|ROADMAP\.md|docs/gaps\.md|Cargo\.lock)$")
+for _k, _v in (("GIT_AUTHOR_NAME", "pr-keeper"), ("GIT_AUTHOR_EMAIL", "pr-keeper@users.noreply.github.com"),
+               ("GIT_COMMITTER_NAME", "pr-keeper"), ("GIT_COMMITTER_EMAIL", "pr-keeper@users.noreply.github.com")):
+    os.environ.setdefault(_k, _v)
 TRAILER = "\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 
