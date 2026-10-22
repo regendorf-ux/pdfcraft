@@ -1,0 +1,51 @@
+name: Keep pull requests current
+
+# Merges the base branch into this repository's open pull request branches when the only
+# conflicts are the mechanical ones (translation catalogs and the hashes pinned for them in
+# ATTRIBUTION.toml). See .github/keep-prs-current/keep_prs_current.py. A scheduled run is always a
+# dry run: it reports what it would merge and pushes nothing. Pushing happens only when someone
+# starts the workflow by hand with "push" ticked.
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "Push the merge commits (leave off for a dry run)"
+        type: boolean
+        default: false
+      only:
+        description: "Only these branches, comma-separated (blank: every open pull request)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keep-prs-current
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add the upstream remote
+        run: |
+          git remote add upstream https://github.com/storytold/pdfcraft.git
+          git config rerere.enabled false
+      - name: Merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_REPO: storytold/pdfcraft
+          PR_AUTHOR: ${{ github.repository_owner }}
+          FORK_REMOTE: origin
+          UPSTREAM_REMOTE: upstream
+          PUSH: ${{ github.event_name == 'workflow_dispatch' && inputs.push && '1' || '' }}
+          ONLY: ${{ inputs.only }}
+        run: python3 .github/keep-prs-current/keep_prs_current.py
