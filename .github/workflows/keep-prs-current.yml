@@ -1,10 +1,19 @@
 name: Keep pull requests current
 
-# Merges the base branch into this repository's open pull request branches when the only
-# conflicts are the mechanical ones (translation catalogs and the hashes pinned for them in
-# ATTRIBUTION.toml). See .github/keep-prs-current/keep_prs_current.py. A scheduled
-# run pushes the merge commits it can make; a person can also start it by hand, as a dry run (the
-# default) or with "push" ticked. Branches in .github/keep-prs-current/skip.txt are left alone.
+# Merges the base branch into this repository's open pull request branches and resolves the
+# conflicts it can resolve safely. See .github/keep-prs-current/keep_prs_current.py.
+#
+# Level "pins" (the schedule): only the mechanical conflicts - the translation catalogs, the hashes
+# pinned for them in ATTRIBUTION.toml, ROADMAP.md, docs/gaps.md and Cargo.lock.
+# Level "all" (by hand for now): also a catalog key written on both sides, the parity file by
+# feature id, and code (recorded resolutions, mergiraf, additions-only unions), where a branch
+# whose code was resolved must pass rustfmt, clippy and its crates' tests here before it is
+# pushed.
+#
+# The plan comes first: mergiraf, the Rust toolchain and the cargo cache are set up only when
+# some branch needs them. A scheduled run pushes the merge commits it can make; a person can start
+# it by hand, as a dry run (the default) or with "push" ticked. Branches in
+# .github/keep-prs-current/skip.txt are left alone.
 
 on:
   schedule:
@@ -15,8 +24,17 @@ on:
         description: "Push the merge commits (leave off for a dry run)"
         type: boolean
         default: false
+      level:
+        description: "pins: catalogs, ATTRIBUTION and Cargo.lock only. all: also same-key catalog rows, the parity file and code (checked with cargo)"
+        type: choice
+        options: [pins, all]
+        default: pins
       only:
         description: "Only these branches, comma-separated (blank: every open pull request)"
+        type: string
+        default: ""
+      replay:
+        description: "Rehearse on these merge commits instead of the open branches (comma-separated; never pushes)"
         type: string
         default: ""
 
@@ -30,22 +48,118 @@ concurrency:
 jobs:
   merge:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 240
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPSTREAM_REPO: storytold/pdfcraft
+      PR_AUTHOR: ${{ github.repository_owner }}
+      FORK_REMOTE: origin
+      UPSTREAM_REMOTE: upstream
+      LEVEL: ${{ inputs.level || 'pins' }}
+      PUSH: ${{ (github.event_name == 'schedule' || inputs.push) && '1' || '' }}
+      ONLY: ${{ inputs.only }}
+      REPLAY: ${{ inputs.replay }}
+      KEEPER: .github/keep-prs-current/keep_prs_current.py
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Add the upstream remote
         run: |
           git remote add upstream https://github.com/storytold/pdfcraft.git
           git config rerere.enabled false
-      - name: Merge
+          mkdir -p .git/rr-cache
+
+      # How people resolved code conflicts on these branches before, learned from their merge
+      # commits and kept between runs. Used (level all) only after the same checks as any other
+      # resolution.
+      - name: Restore the recorded resolutions
+        if: env.LEVEL == 'all'
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/rr-cache
+          key: keep-prs-rerere-${{ github.run_id }}
+          restore-keys: keep-prs-rerere-
+
+      - name: Plan
+        id: plan
+        run: python3 "$KEEPER" classify
+
+      - name: Install mergiraf
+        if: steps.plan.outputs.needs_mergiraf == 'true'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/mergiraf.tar.gz" \
+            https://codeberg.org/mergiraf/mergiraf/releases/download/v0.20.0/mergiraf_x86_64-unknown-linux-musl.tar.gz
+          echo "fc77469be936b02ab9021b984a3aebc9250a21ae3d264f2ef2198eb8b31b2a7b  $RUNNER_TEMP/mergiraf.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/mergiraf.tar.gz" -C "$RUNNER_TEMP/bin" mergiraf
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve
+        id: resolve
+        run: python3 "$KEEPER" resolve
+
+      # Everything below up to the report runs only when a branch's code was resolved.
+      - name: Make room on the disk
+        if: steps.resolve.outputs.needs_cargo == 'true'
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Linux libraries for the build
+        if: steps.resolve.outputs.needs_cargo == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev \
+            libgl1-mesa-dev libgtk-3-dev qpdf poppler-utils
+
+      - name: Rust toolchain
+        if: steps.resolve.outputs.needs_cargo == 'true'
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Restore the cargo cache
+        id: cargo-cache
+        if: steps.resolve.outputs.needs_cargo == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            ${{ runner.temp }}/keep-prs-target
+          key: keep-prs-cargo-${{ steps.plan.outputs.lock }}
+          restore-keys: keep-prs-cargo-
+
+      - name: Check the resolved branches
+        if: steps.resolve.outputs.needs_cargo == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
-          UPSTREAM_REPO: storytold/pdfcraft
-          PR_AUTHOR: ${{ github.repository_owner }}
-          FORK_REMOTE: origin
-          UPSTREAM_REMOTE: upstream
-          PUSH: ${{ (github.event_name == 'schedule' || inputs.push) && '1' || '' }}
-          ONLY: ${{ inputs.only }}
-        run: python3 .github/keep-prs-current/keep_prs_current.py
+          CARGO_PROFILE_DEV_DEBUG: "0"
+          CARGO_PROFILE_TEST_DEBUG: "0"
+        run: python3 "$KEEPER" verify
+
+      - name: Save the cargo cache
+        if: always() && steps.resolve.outputs.needs_cargo == 'true' && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            ${{ runner.temp }}/keep-prs-target
+          key: keep-prs-cargo-${{ steps.plan.outputs.lock }}
+
+      - name: Push and report
+        if: always() && steps.plan.outcome == 'success'
+        run: python3 "$KEEPER" finish
+
+      - name: Save the recorded resolutions
+        if: always() && env.LEVEL == 'all'
+        uses: actions/cache/save@v4
+        with:
+          path: .git/rr-cache
+          key: keep-prs-rerere-${{ github.run_id }}
