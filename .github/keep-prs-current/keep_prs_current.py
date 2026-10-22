@@ -62,9 +62,12 @@ SKIP = _skip_list()
 CATALOGS = "crates/ui-egui/src/i18n/"
 UNION_PATHS = (CATALOGS + "*.tsv", "ROADMAP.md", "docs/gaps.md")
 MECHANICAL = re.compile(r"^(crates/ui-egui/src/i18n/[^/]+\.tsv|ATTRIBUTION\.toml|ATTRIBUTION\.md|ROADMAP\.md|docs/gaps\.md|Cargo\.lock)$")
-for _k, _v in (("GIT_AUTHOR_NAME", "pr-keeper"), ("GIT_AUTHOR_EMAIL", "pr-keeper@users.noreply.github.com"),
-               ("GIT_COMMITTER_NAME", "pr-keeper"), ("GIT_COMMITTER_EMAIL", "pr-keeper@users.noreply.github.com")):
-    os.environ.setdefault(_k, _v)
+# Commits on a pull request branch carry the contributor's own identity (the repository owner's
+# GitHub noreply address), as every other commit on these branches does.
+_NAME = os.environ.get("KEEPER_NAME", "Osvaldo Duran")
+_EMAIL = os.environ.get("KEEPER_EMAIL", "338149330+regendorf-ux@users.noreply.github.com")
+for _k, _v in (("GIT_AUTHOR_NAME", _NAME), ("GIT_AUTHOR_EMAIL", _EMAIL), ("GIT_COMMITTER_NAME", _NAME), ("GIT_COMMITTER_EMAIL", _EMAIL)):
+    os.environ[_k] = _v
 TRAILER = "\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 
@@ -185,7 +188,7 @@ def handle(number: int, branch: str, base_sha: str, work: Path) -> tuple:
         return "by hand", "; ".join(problems[:4])
     git("add", "-A", cwd=work)
     what = ", ".join(conflicted) if conflicted else "no conflicts"
-    git("-c", "user.name=pr-keeper", "-c", "user.email=pr-keeper@users.noreply.github.com", "commit", "-q", "-m",
+    git("commit", "-q", "-m",
         f"Merge upstream {BASE} {base_sha[:8]} into {branch}\n\n"
         + (f"Mechanical merge ({what}): main's copy of the pinned files, hashes recomputed, both sides' catalog rows kept." if conflicted else "Merged cleanly, no conflicts.")
         + TRAILER, cwd=work)
