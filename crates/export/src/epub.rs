@@ -542,7 +542,7 @@ mod tests {
     fn a_reflowable_book_passes_the_structural_rules_and_splits_at_headings() {
         let png = b"\x89PNG\r\n\x1a\nfake".to_vec();
         let mut p1 = page(vec![block("Introduction", 24.0, 700.0), block("Body text of the first page.", 11.0, 650.0)]);
-        p1.images.push(Image { ext: "png", bytes: png, rect: [72.0, 300.0, 300.0, 500.0], size: [228.0, 200.0], rotation: 0.0 });
+        p1.images.push(Image { ext: "png", bytes: png.into(), rect: [72.0, 300.0, 300.0, 500.0], size: [228.0, 200.0], rotation: 0.0 });
         let p2 = page(vec![block("More body < & > text.", 11.0, 700.0)]);
         let p3 = page(vec![block("Second chapter", 24.0, 700.0), block("Its body.", 11.0, 650.0)]);
         let book = epub(&[p1, p2, p3], &meta(), &[], &Tags::default());
@@ -565,7 +565,13 @@ mod tests {
     #[test]
     fn tags_give_heading_levels_and_alternate_text() {
         let mut p1 = page(vec![block("Plain looking heading", 11.0, 700.0), block("Big but not a heading", 30.0, 650.0)]);
-        p1.images.push(Image { ext: "jpg", bytes: b"\xff\xd8\xff".to_vec(), rect: [72.0, 300.0, 300.0, 500.0], size: [228.0, 200.0], rotation: 0.0 });
+        p1.images.push(Image {
+            ext: "jpg",
+            bytes: b"\xff\xd8\xff".as_slice().into(),
+            rect: [72.0, 300.0, 300.0, 500.0],
+            size: [228.0, 200.0],
+            rotation: 0.0,
+        });
         let tags = Tags {
             headings: vec![(0, 2, "Plain  looking heading".into())],
             alts: vec![(0, [70.0, 290.0, 310.0, 510.0], "A bar chart of sales".into())],

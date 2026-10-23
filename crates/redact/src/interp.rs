@@ -21,7 +21,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use pdfcraft_content::{Matrix, Op, Pieces, contains, num, overlaps, serialize_ops, string};
-use pdfcraft_cos::{CosError, Dict, Document, ObjRef, Object, Stream};
+use pdfcraft_cos::{CosError, DecodeBudget, Dict, Document, MAX_PAGE_FORMS, ObjRef, Object, Stream};
 
 use crate::{RedactError, Report, image, page_streams, tags};
 use pdfcraft_fonts::pdf::Metrics;
@@ -106,10 +106,16 @@ pub(crate) struct Scope<'a> {
     fonts: HashMap<Vec<u8>, Rc<Metrics>>,
     used_names: Vec<Vec<u8>>,
     depth: usize,
+    /// Form entries and decoded bytes left for this page, its content streams already charged:
+    /// shared forms drawn from other shared forms would otherwise multiply the work with every
+    /// level.
+    budget: DecodeBudget,
 }
 
 impl<'a> Scope<'a> {
-    pub fn new(rects: &'a [[f64; 4]], mode: Mode, report: &'a mut Report) -> Self {
+    /// A scope whose form walk spends `budget`, what is left of the page's allowance after its
+    /// content streams were decoded.
+    pub fn new(rects: &'a [[f64; 4]], mode: Mode, report: &'a mut Report, budget: DecodeBudget) -> Self {
         Scope {
             rects,
             mode,
@@ -124,6 +130,7 @@ impl<'a> Scope<'a> {
             fonts: HashMap::new(),
             used_names: Vec::new(),
             depth: 0,
+            budget,
         }
     }
 
@@ -1272,8 +1279,25 @@ fn xobject(
                 return Some(None);
             }
             // Strict, like page content: a Form read only in part counts as undecodable.
-            let data = match s.decoded_strict() {
+            let data = if scope.budget.enter_form() {
+                scope.budget.decode_strict(s)
+            } else {
+                Err(CosError::Filter(format!("the page draws more than {MAX_PAGE_FORMS} form XObjects")))
+            };
+            let data = match data {
                 Ok(d) => d,
+                // Past the page's budget nothing more is read: apply refuses the page, and
+                // verification counts the form as content that may remain.
+                Err(e) if scope.budget.exhausted() => {
+                    if scope.mode == Mode::Apply {
+                        out.error = Some(e);
+                    } else if scope.everywhere() {
+                        scope.layer_blocks += 1;
+                    } else {
+                        out.residue += 1;
+                    }
+                    return None;
+                }
                 Err(_) if scope.mode == Mode::Apply => {
                     scope.report.forms_removed += 1;
                     out.replaced.push(name);
