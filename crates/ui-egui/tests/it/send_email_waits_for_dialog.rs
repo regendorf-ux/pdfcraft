@@ -1,7 +1,7 @@
 //! File ▸ Send by email… while the email app is slow: if the person opens another dialog before
 //! the answer comes, a "couldn't attach" answer waits until that dialog is closed, instead of
 //! replacing it. The email app is never asked: a stand-in takes the request and answers when the
-//! test says. Standalone (not in `ui_group`): it writes process-ID temporary files.
+//! test says. Its temporary files are named after the process and the test.
 
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use egui_kittest::Harness;
 use pdfcraft_platform::mail::{self, Answer, Compose, MailError, Why};
 use pdfcraft_ui_egui::{Dialog, PdfCraftApp};
 
-const PDF: &[u8] = include_bytes!("data/form.pdf");
+const PDF: &[u8] = include_bytes!("../data/form.pdf");
 
 thread_local! {
     /// What the stand-in was asked to attach, and how to answer it.

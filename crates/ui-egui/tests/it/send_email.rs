@@ -1,6 +1,6 @@
 //! File ▸ Send by email… in the real shell (egui_kittest). The email app is never asked: a
 //! stand-in takes the request and answers when the test says, and another stands in for the file
-//! manager. Standalone (not in `ui_group`): it writes process-ID temporary files.
+//! manager. Its temporary files are named after the process and the test.
 
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use egui_kittest::kittest::Queryable;
 use pdfcraft_platform::mail::{self, Answer, Compose, MailError, Why};
 use pdfcraft_ui_egui::{Dialog, PdfCraftApp};
 
-const PDF: &[u8] = include_bytes!("data/form.pdf");
+const PDF: &[u8] = include_bytes!("../data/form.pdf");
 
 thread_local! {
     /// What the stand-in was asked to attach, and how to answer it.
@@ -68,8 +68,9 @@ fn an_email_app_that_cant_take_the_file_gets_a_message_and_the_file_is_shown() {
     h.run_steps(2);
     h.get_by_label("File ⏵").hover();
     h.run_steps(3);
-    // The menu item's label ends with its (empty) shortcut text.
-    h.get_by_label_contains("Send by email…").click();
+    // The menu item's label ends with its (empty) shortcut text. It is pressed as a screen reader
+    // would: a pointer click on the File menu's lower items doesn't reach them headless.
+    h.get_by_label_contains("Send by email…").click_accesskit();
     h.run_steps(2);
 
     let asked = sent();

@@ -1,8 +1,8 @@
 //! File ▸ Send by email… with unsaved edits: the copy for the email app goes into a new folder of
 //! its own that only its owner can read, created fresh, so a folder or a link someone else put in
 //! the shared temp folder is never written through. Unix only (modes and symlinks); the email app
-//! is never asked: a stand-in takes the request. Standalone (not in `ui_group`): it writes
-//! process-ID temporary files.
+//! is never asked: a stand-in takes the request. Its temporary files are named after the process
+//! and the test.
 #![cfg(unix)]
 
 use std::cell::RefCell;
@@ -14,7 +14,7 @@ use egui_kittest::Harness;
 use pdfcraft_platform::mail::{Answer, Compose, MailError};
 use pdfcraft_ui_egui::PdfCraftApp;
 
-const PDF: &[u8] = include_bytes!("data/form.pdf");
+const PDF: &[u8] = include_bytes!("../data/form.pdf");
 
 thread_local! {
     /// What the stand-in was asked to attach, and how to answer it.
