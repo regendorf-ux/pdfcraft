@@ -1401,9 +1401,16 @@ def cmd_finish(state: dict) -> int:
                 elif now != item["head"]:
                     item["status"], pushed = "skip", f"the branch moved during the run ({now[:8]}); next run"
                 else:
-                    git("push", "-q", FORK_REMOTE, f"{item['commit']}:refs/heads/{item['branch']}")
-                    memory["pushes"][item["branch"]] = time.time()
-                    pushed = "pushed"
+                    try:
+                        git("push", "-q", FORK_REMOTE, f"{item['commit']}:refs/heads/{item['branch']}")
+                        memory["pushes"][item["branch"]] = time.time()
+                        pushed = "pushed"
+                    except RuntimeError as e:
+                        # GitHub refuses a push from this workflow's token when the merge brings in a changed
+                        # file under .github/workflows (it has no `workflows` permission): leave this branch
+                        # for a person and carry on with the others.
+                        why_not = "upstream changed a workflow file, which this token may not push" if "workflow" in str(e) else str(e)[:160]
+                        item["status"], pushed = "by hand", f"not pushed: {why_not}"
             else:
                 pushed = "dry run: not pushed"
         item["pushed"] = pushed
