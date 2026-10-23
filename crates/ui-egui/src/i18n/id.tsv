@@ -2752,7 +2752,7 @@ theme	Appearance	Tampilan
 	two cells would both be named {name}	dua sel akan sama-sama bernama {name}
 	a field named {name} already exists	kolom bernama {name} sudah ada
 	Another server…	Server lain…
-	Choose one in Preferences ▸ Signatures	Pilih satu di Preferensi ▸ Tanda tangan
+	Choose one in Preferences ▸ Signatures	Pilih satu di Preferensi > Tanda tangan
 	No time server is chosen, so the signing time is this computer's clock.	Tidak ada server waktu yang dipilih, jadi waktu penandatanganan memakai jam komputer ini.
 	None (use this computer's clock)	Tidak ada (pakai jam komputer ini)
 	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Nonaktif sampai Anda memilih server. Setelah itu PdfCraft menghubunginya hanya saat Anda menandatangani, dan mengirimkan sidik jari (hash) tanda tangan, bukan dokumennya. Jika server tidak dapat dijangkau, dokumen ditandatangani tanpa waktu tepercaya, dan Anda akan diberi tahu.

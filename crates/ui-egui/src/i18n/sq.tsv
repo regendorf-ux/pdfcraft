@@ -2501,7 +2501,7 @@ animation effects	Off	Joaktiv
 	two cells would both be named {name}	dy qeliza do të kishin të dyja emrin {name}
 	a field named {name} already exists	ekziston tashmë një fushë me emrin {name}
 	Another server…	Një server tjetër…
-	Choose one in Preferences ▸ Signatures	Zgjidhni një te Preferencat ▸ Nënshkrimet
+	Choose one in Preferences ▸ Signatures	Zgjidhni një te Preferencat > Nënshkrimet
 	No time server is chosen, so the signing time is this computer's clock.	Nuk është zgjedhur server kohe, ndaj ora e nënshkrimit është ora e këtij kompjuteri.
 	None (use this computer's clock)	Asnjë (përdor orën e këtij kompjuteri)
 	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Çaktivizuar derisa të zgjidhni një server. Pastaj PdfCraft e kontakton vetëm kur nënshkruani dhe i dërgon një gjurmë gishti (hash) të nënshkrimit, kurrë dokumentin. Nëse serveri nuk arrihet, dokumenti nënshkruhet pa kohën e besuar dhe ju njoftoheni.

@@ -2784,7 +2784,7 @@ theme	Appearance	Teema
 	two cells would both be named {name}	kahdella solulla olisi sama nimi {name}
 	a field named {name} already exists	kenttä nimeltä {name} on jo olemassa
 	Another server…	Toinen palvelin…
-	Choose one in Preferences ▸ Signatures	Valitse yksi kohdasta Asetukset ▸ Allekirjoitukset
+	Choose one in Preferences ▸ Signatures	Valitse yksi kohdasta Asetukset > Allekirjoitukset
 	No time server is chosen, so the signing time is this computer's clock.	Aikapalvelinta ei ole valittu, joten allekirjoitusaika on tämän tietokoneen kello.
 	None (use this computer's clock)	Ei mitään (käytä tämän tietokoneen kelloa)
 	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Pois käytöstä, kunnes valitset palvelimen. Sen jälkeen PdfCraft ottaa siihen yhteyden vain allekirjoittaessasi ja lähettää sille allekirjoituksen sormenjäljen (tiivisteen), ei koskaan asiakirjaa. Jos palvelinta ei tavoiteta, asiakirja allekirjoitetaan ilman luotettavaa aikaa, ja siitä ilmoitetaan.

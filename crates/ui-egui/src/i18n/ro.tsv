@@ -2775,7 +2775,7 @@ theme	Appearance	Aspect
 	two cells would both be named {name}	două celule s-ar numi amândouă {name}
 	a field named {name} already exists	există deja un câmp numit {name}
 	Another server…	Alt server…
-	Choose one in Preferences ▸ Signatures	Alegeți unul în Preferințe ▸ Semnături
+	Choose one in Preferences ▸ Signatures	Alegeți unul în Preferințe > Semnături
 	No time server is chosen, so the signing time is this computer's clock.	Nu este ales niciun server de timp, deci ora semnării este cea a ceasului acestui calculator.
 	None (use this computer's clock)	Niciunul (se folosește ceasul acestui calculator)
 	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Dezactivat până alegeți un server. Apoi PdfCraft îl contactează doar când semnați și îi trimite o amprentă (hash) a semnăturii, niciodată documentul. Dacă serverul nu poate fi contactat, documentul se semnează fără ora de încredere, iar dvs. sunteți înștiințat.

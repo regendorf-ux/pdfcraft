@@ -2775,7 +2775,7 @@ theme	Appearance	Aspecte
 	two cells would both be named {name}	dues cel·les es dirien {name}
 	a field named {name} already exists	ja existeix un camp anomenat {name}
 	Another server…	Un altre servidor…
-	Choose one in Preferences ▸ Signatures	Tria'n un a Preferències ▸ Signatures
+	Choose one in Preferences ▸ Signatures	Tria'n un a Preferències > Signatures
 	No time server is chosen, so the signing time is this computer's clock.	No s'ha triat cap servidor de temps, així que l'hora de la signatura és la del rellotge d'aquest ordinador.
 	None (use this computer's clock)	Cap (usa el rellotge d'aquest ordinador)
 	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Desactivat fins que triïs un servidor. Llavors PdfCraft hi contacta només quan signes i li envia una empremta digital (hash) de la signatura, mai el document. Si no es pot arribar al servidor, el document se signa sense l'hora de confiança i se t'avisa.
