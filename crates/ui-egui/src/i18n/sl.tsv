@@ -2487,7 +2487,7 @@ animation effects	Off	Izklopljeni
 	Pages selected	Izbrane strani
 	Page properties	Lastnosti strani
 # Combine files from Finder (macOS).
-	From Finder: select files, then right-click ▸ Quick Actions ▸ Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions ▸ Customize.	V Finderju: izberite datoteke, nato desni klik ▸ Hitra dejanja ▸ “Combine files in PdfCraft”. Ga ni? Enkrat ga vklopite v Hitra dejanja ▸ Prilagodi.
+	From Finder: select files, then right-click ▸ Quick Actions ▸ Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions ▸ Customize.	V Finderju: izberite datoteke, nato desni klik > Hitra dejanja > “Combine files in PdfCraft”. Ga ni? Enkrat ga vklopite v Hitra dejanja > Prilagodi.
 	Font	Pisava
 	Bulleted list	Označen seznam
 	Numbered list	Oštevilčen seznam

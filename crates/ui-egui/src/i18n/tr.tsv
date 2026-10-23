@@ -2478,7 +2478,7 @@ animation effects	Off	Kapalı
 	Pages selected	Seçilen sayfalar
 	Page properties	Sayfa özellikleri
 # Combine files from Finder (macOS).
-	From Finder: select files, then right-click ▸ Quick Actions ▸ Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions ▸ Customize.	Finder'dan: dosyaları seçin, sonra sağ tık ▸ Hızlı Eylemler ▸ “Combine files in PdfCraft”. Listede yok mu? Bir kez Hızlı Eylemler ▸ Özelleştir'den açın.
+	From Finder: select files, then right-click ▸ Quick Actions ▸ Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions ▸ Customize.	Finder'dan: dosyaları seçin, sonra sağ tık > Hızlı Eylemler > “Combine files in PdfCraft”. Listede yok mu? Bir kez Hızlı Eylemler > Özelleştir'den açın.
 	Font	Yazı tipi
 	Bulleted list	Madde işaretli liste
 	Numbered list	Numaralı liste
