@@ -2482,7 +2482,7 @@ animation effects	Off	Désactivés
 	Pages selected	Pages sélectionnées
 	Page properties	Propriétés de la page
 # Combine files from Finder (macOS).
-	From Finder: select files, then right-click ▸ Quick Actions ▸ Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions ▸ Customize.	Depuis le Finder : sélectionnez des fichiers, puis clic droit > Actions rapides > “Combine files in PdfCraft”. Absent ? Activez-le une fois dans Actions rapides > Personnaliser.
+	From Finder: select files, then right-click > Quick Actions > Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions > Customize.	Depuis le Finder : sélectionnez des fichiers, puis clic droit > Actions rapides > “Combine files in PdfCraft”. Absent ? Activez-le une fois dans Actions rapides > Personnaliser.
 	Font	Police
 	Bulleted list	Liste à puces
 	Numbered list	Liste numérotée
