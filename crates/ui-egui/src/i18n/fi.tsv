@@ -2783,3 +2783,16 @@ theme	Appearance	Teema
 	field names can't contain a period: {name}	kenttien nimissä ei voi olla pistettä: {name}
 	two cells would both be named {name}	kahdella solulla olisi sama nimi {name}
 	a field named {name} already exists	kenttä nimeltä {name} on jo olemassa
+	Another server…	Toinen palvelin…
+	Choose one in Preferences ▸ Signatures	Valitse yksi kohdasta Asetukset ▸ Allekirjoitukset
+	No time server is chosen, so the signing time is this computer's clock.	Aikapalvelinta ei ole valittu, joten allekirjoitusaika on tämän tietokoneen kello.
+	None (use this computer's clock)	Ei mitään (käytä tämän tietokoneen kelloa)
+	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Pois käytöstä, kunnes valitset palvelimen. Sen jälkeen PdfCraft ottaa siihen yhteyden vain allekirjoittaessasi ja lähettää sille allekirjoituksen sormenjäljen (tiivisteen), ei koskaan asiakirjaa. Jos palvelinta ei tavoiteta, asiakirja allekirjoitetaan ilman luotettavaa aikaa, ja siitä ilmoitetaan.
+	Only a fingerprint (hash) of the signature is sent to the time server, never the document.	Aikapalvelimelle lähetetään vain allekirjoituksen sormenjälki (tiiviste), ei koskaan asiakirjaa.
+	Server address	Palvelimen osoite
+	Signed and saved to {path}, but without a trusted time: {reason}. The signing time is this computer's clock.	Allekirjoitettu ja tallennettu kohteeseen {path}, mutta ilman luotettavaa aikaa: {reason}. Allekirjoitusaika on tämän tietokoneen kello.
+	This isn't a time server address: it starts with http:// or https:// and names a server. Until it is, no time server is used.	Tämä ei ole aikapalvelimen osoite: sen on alettava http:// tai https:// ja nimettävä palvelin. Siihen asti aikapalvelinta ei käytetä.
+	Time server	Aikapalvelin
+	Trusted time from a time server	Luotettava aika aikapalvelimelta
+	Trusted time from {server}	Luotettava aika palvelimelta {server}
+	Type the server's address. Until then, no time server is used.	Kirjoita palvelimen osoite. Siihen asti aikapalvelinta ei käytetä.

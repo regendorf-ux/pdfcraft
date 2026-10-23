@@ -2750,3 +2750,16 @@ theme	Appearance	स्वरूप
 	field names can't contain a period: {name}	फ़ील्ड के नामों में पूर्ण विराम (.) नहीं हो सकता: {name}
 	two cells would both be named {name}	दो सेल का नाम {name} हो जाएगा
 	a field named {name} already exists	{name} नाम का फ़ील्ड पहले से मौजूद है
+	Another server…	दूसरा सर्वर…
+	Choose one in Preferences ▸ Signatures	प्राथमिकताएँ ▸ हस्ताक्षर में से एक चुनें
+	No time server is chosen, so the signing time is this computer's clock.	कोई टाइम सर्वर नहीं चुना गया है, इसलिए हस्ताक्षर का समय इस कंप्यूटर की घड़ी का है।
+	None (use this computer's clock)	कोई नहीं (इस कंप्यूटर की घड़ी उपयोग करें)
+	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	आपके सर्वर चुनने तक बंद। फिर PdfCraft उससे केवल हस्ताक्षर करते समय संपर्क करता है और उसे हस्ताक्षर का फ़िंगरप्रिंट (हैश) भेजता है, दस्तावेज़ कभी नहीं। सर्वर तक न पहुँच पाने पर दस्तावेज़ बिना विश्वसनीय समय के हस्ताक्षरित होता है, और आपको बताया जाता है।
+	Only a fingerprint (hash) of the signature is sent to the time server, never the document.	टाइम सर्वर को केवल हस्ताक्षर का फ़िंगरप्रिंट (हैश) भेजा जाता है, दस्तावेज़ कभी नहीं।
+	Server address	सर्वर का पता
+	Signed and saved to {path}, but without a trusted time: {reason}. The signing time is this computer's clock.	{path} पर हस्ताक्षरित और सहेजा गया, लेकिन विश्वसनीय समय के बिना: {reason}। हस्ताक्षर का समय इस कंप्यूटर की घड़ी का है।
+	This isn't a time server address: it starts with http:// or https:// and names a server. Until it is, no time server is used.	यह टाइम सर्वर का पता नहीं है: यह http:// या https:// से शुरू होता है और किसी सर्वर का नाम देता है। जब तक ऐसा नहीं होता, कोई टाइम सर्वर उपयोग नहीं किया जाता।
+	Time server	टाइम सर्वर
+	Trusted time from a time server	टाइम सर्वर से विश्वसनीय समय
+	Trusted time from {server}	{server} से विश्वसनीय समय
+	Type the server's address. Until then, no time server is used.	सर्वर का पता लिखें। तब तक कोई टाइम सर्वर उपयोग नहीं किया जाता।

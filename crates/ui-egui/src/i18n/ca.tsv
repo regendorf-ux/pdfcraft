@@ -2774,3 +2774,16 @@ theme	Appearance	Aspecte
 	field names can't contain a period: {name}	els noms dels camps no poden contenir cap punt: {name}
 	two cells would both be named {name}	dues cel·les es dirien {name}
 	a field named {name} already exists	ja existeix un camp anomenat {name}
+	Another server…	Un altre servidor…
+	Choose one in Preferences ▸ Signatures	Tria'n un a Preferències ▸ Signatures
+	No time server is chosen, so the signing time is this computer's clock.	No s'ha triat cap servidor de temps, així que l'hora de la signatura és la del rellotge d'aquest ordinador.
+	None (use this computer's clock)	Cap (usa el rellotge d'aquest ordinador)
+	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Desactivat fins que triïs un servidor. Llavors PdfCraft hi contacta només quan signes i li envia una empremta digital (hash) de la signatura, mai el document. Si no es pot arribar al servidor, el document se signa sense l'hora de confiança i se t'avisa.
+	Only a fingerprint (hash) of the signature is sent to the time server, never the document.	Al servidor de temps només s'envia una empremta digital (hash) de la signatura, mai el document.
+	Server address	Adreça del servidor
+	Signed and saved to {path}, but without a trusted time: {reason}. The signing time is this computer's clock.	S'ha signat i desat a {path}, però sense hora de confiança: {reason}. L'hora de la signatura és la del rellotge d'aquest ordinador.
+	This isn't a time server address: it starts with http:// or https:// and names a server. Until it is, no time server is used.	Aquesta no és l'adreça d'un servidor de temps: ha de començar per http:// o https:// i indicar un servidor. Fins llavors no s'usa cap servidor de temps.
+	Time server	Servidor de temps
+	Trusted time from a time server	Hora de confiança d'un servidor de temps
+	Trusted time from {server}	Hora de confiança de {server}
+	Type the server's address. Until then, no time server is used.	Escriu l'adreça del servidor. Fins llavors no s'usa cap servidor de temps.

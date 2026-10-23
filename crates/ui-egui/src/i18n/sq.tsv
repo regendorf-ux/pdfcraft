@@ -2500,3 +2500,16 @@ animation effects	Off	Joaktiv
 	field names can't contain a period: {name}	emrat e fushave nuk mund të përmbajnë pikë: {name}
 	two cells would both be named {name}	dy qeliza do të kishin të dyja emrin {name}
 	a field named {name} already exists	ekziston tashmë një fushë me emrin {name}
+	Another server…	Një server tjetër…
+	Choose one in Preferences ▸ Signatures	Zgjidhni një te Preferencat ▸ Nënshkrimet
+	No time server is chosen, so the signing time is this computer's clock.	Nuk është zgjedhur server kohe, ndaj ora e nënshkrimit është ora e këtij kompjuteri.
+	None (use this computer's clock)	Asnjë (përdor orën e këtij kompjuteri)
+	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Çaktivizuar derisa të zgjidhni një server. Pastaj PdfCraft e kontakton vetëm kur nënshkruani dhe i dërgon një gjurmë gishti (hash) të nënshkrimit, kurrë dokumentin. Nëse serveri nuk arrihet, dokumenti nënshkruhet pa kohën e besuar dhe ju njoftoheni.
+	Only a fingerprint (hash) of the signature is sent to the time server, never the document.	Serverit të kohës i dërgohet vetëm një gjurmë gishti (hash) e nënshkrimit, kurrë dokumenti.
+	Server address	Adresa e serverit
+	Signed and saved to {path}, but without a trusted time: {reason}. The signing time is this computer's clock.	U nënshkrua dhe u ruajt te {path}, por pa kohë të besuar: {reason}. Ora e nënshkrimit është ora e këtij kompjuteri.
+	This isn't a time server address: it starts with http:// or https:// and names a server. Until it is, no time server is used.	Kjo nuk është adresë e një serveri kohe: duhet të fillojë me http:// ose https:// dhe të emërtojë një server. Derisa të jetë e tillë, nuk përdoret server kohe.
+	Time server	Serveri i kohës
+	Trusted time from a time server	Kohë e besuar nga një server kohe
+	Trusted time from {server}	Kohë e besuar nga {server}
+	Type the server's address. Until then, no time server is used.	Shkruani adresën e serverit. Deri atëherë, nuk përdoret server kohe.

@@ -2774,3 +2774,16 @@ theme	Appearance	Aspect
 	field names can't contain a period: {name}	numele câmpurilor nu pot conține punct: {name}
 	two cells would both be named {name}	două celule s-ar numi amândouă {name}
 	a field named {name} already exists	există deja un câmp numit {name}
+	Another server…	Alt server…
+	Choose one in Preferences ▸ Signatures	Alegeți unul în Preferințe ▸ Semnături
+	No time server is chosen, so the signing time is this computer's clock.	Nu este ales niciun server de timp, deci ora semnării este cea a ceasului acestui calculator.
+	None (use this computer's clock)	Niciunul (se folosește ceasul acestui calculator)
+	Off until you choose a server. Then PdfCraft contacts it only when you sign, and sends it a fingerprint (hash) of the signature, never the document. If the server can't be reached, the document is signed without the trusted time, and you're told.	Dezactivat până alegeți un server. Apoi PdfCraft îl contactează doar când semnați și îi trimite o amprentă (hash) a semnăturii, niciodată documentul. Dacă serverul nu poate fi contactat, documentul se semnează fără ora de încredere, iar dvs. sunteți înștiințat.
+	Only a fingerprint (hash) of the signature is sent to the time server, never the document.	Serverului de timp i se trimite doar o amprentă (hash) a semnăturii, niciodată documentul.
+	Server address	Adresa serverului
+	Signed and saved to {path}, but without a trusted time: {reason}. The signing time is this computer's clock.	Semnat și salvat în {path}, dar fără o oră de încredere: {reason}. Ora semnării este cea a ceasului acestui calculator.
+	This isn't a time server address: it starts with http:// or https:// and names a server. Until it is, no time server is used.	Aceasta nu este o adresă de server de timp: trebuie să înceapă cu http:// sau https:// și să numească un server. Până atunci nu se folosește niciun server de timp.
+	Time server	Server de timp
+	Trusted time from a time server	Oră de încredere de la un server de timp
+	Trusted time from {server}	Oră de încredere de la {server}
+	Type the server's address. Until then, no time server is used.	Introduceți adresa serverului. Până atunci nu se folosește niciun server de timp.
