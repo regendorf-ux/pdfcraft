@@ -4150,6 +4150,7 @@ dependencies = [
 name = "pdfcraft-export"
 version = "0.13.0"
 dependencies = [
+ "chrono",
  "flate2",
  "roxmltree",
 ]
