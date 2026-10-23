@@ -1,12 +1,5 @@
 # Branches a person is working on right now: the keeper leaves them alone.
-pr/paragraph-spacing
-pr/combine-right-click
-pr/combine-finder
-pr/print-area
-pr/timestamps
 pr/certificate-encryption
-pr/page-setup
 pr/xlsx-export
 pr/find-replace
-pr/split-view
 pr/epub-export
