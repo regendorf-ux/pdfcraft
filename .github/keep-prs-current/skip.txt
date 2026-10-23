@@ -1,5 +1,2 @@
 # Branches a person is working on right now: the keeper leaves them alone.
-pr/certificate-encryption
-pr/xlsx-export
-pr/find-replace
-pr/epub-export
+# (none at the moment)
