@@ -1102,6 +1102,9 @@ impl Automation {
         let name = a.str("name")?;
         let own_path = PathBuf::from(&own);
         self.check_roots(&own, &own_path, file_access::Access::Write)?;
+        if self.root.is_some() {
+            self.resolve_in_root(&own, true)?;
+        }
         if let Some(target) = pdfcraft_engine::rename_target(&own_path, name).map_err(failed)? {
             let shown = target.to_string_lossy().into_owned();
             self.check_roots(&shown, &target, file_access::Access::Write)?;

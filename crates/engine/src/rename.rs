@@ -123,6 +123,9 @@ impl Session {
         if std::fs::metadata(&current).is_ok_and(|m| m.permissions().readonly()) {
             return Err(RenameError::ReadOnly);
         }
+        // `rename_target` checked that the name is free, but this move still replaces a file that
+        // appeared in between (a sync client, another program): the window is small, and std has no
+        // no-replace rename on every system.
         std::fs::rename(&current, &target).map_err(|e| {
             RenameError::Failed(match e.kind() {
                 std::io::ErrorKind::PermissionDenied => "it is open in another program, or you don't have permission".into(),
@@ -168,6 +171,8 @@ mod tests {
         }
         assert!(name("CONSOLE").is_ok(), "only the exact device names are reserved");
         assert!(matches!(name("trailing."), Err(RenameError::Invalid(_))));
+        // A trailing space goes with the trim, which leaves the dot at the end to be refused.
+        assert!(matches!(name("a. "), Err(RenameError::Invalid(_))));
         assert!(matches!(name("report.pdf."), Err(RenameError::Invalid(_))));
         assert!(matches!(name(&"x".repeat(252)), Err(RenameError::Invalid(_))), "252 + .pdf is over 255");
         assert!(name(&"x".repeat(251)).is_ok());
