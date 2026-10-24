@@ -56,3 +56,20 @@ fn replace_keeps_untouched_rows() {
     let after = content(&doc);
     assert!(after.contains("-300"), "the first row keeps its TJ kerning: {after}");
 }
+
+/// The rewrite keeps every space typed, so a deleted word must not leave its two neighbouring
+/// spaces behind; a run of spaces the paragraph had is left as it was.
+#[test]
+fn a_deleted_word_leaves_one_space() {
+    let doc = page("BT /F1 10 Tf 100 700 Td (one two  three) Tj ET");
+    let block = text_blocks(&doc, 0).unwrap().swap_remove(0);
+    assert_eq!(block.editor_text, "one two  three");
+    let two = block.editor_text.find("two").unwrap();
+    let (text, _) = block.replaced(std::slice::from_ref(&(two..two + 3)), "").unwrap();
+    assert_eq!(text, "one  three");
+    let one = block.editor_text.find("one").unwrap();
+    let (text, _) = block.replaced(std::slice::from_ref(&(one..one + 3)), "").unwrap();
+    assert_eq!(text, " two  three");
+    let (text, _) = block.replaced(std::slice::from_ref(&(two..two + 3)), "2").unwrap();
+    assert_eq!(text, "one 2  three");
+}

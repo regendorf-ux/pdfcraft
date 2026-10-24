@@ -606,8 +606,10 @@ impl TextBlock {
     /// `editor_text` with each of `ranges` (byte ranges in it, in order and not overlapping) put
     /// in `with`, and the source run each byte range of the result keeps the style of
     /// ([`BlockStyle::sources`]): every character outside the ranges its own, a replacement the
-    /// run of the first character it replaces. `None` when a range is out of order, overlaps
-    /// another or does not fall on character boundaries.
+    /// run of the first character it replaces. Spaces a replacement puts side by side become
+    /// one (deleting a word leaves one space between its neighbours), while a run of spaces the
+    /// paragraph already had stays, since the rewrite keeps every space typed. `None` when a
+    /// range is out of order, overlaps another or does not fall on character boundaries.
     pub fn replaced(&self, ranges: &[std::ops::Range<usize>], with: &str) -> Option<(String, RunSources)> {
         let mut end = 0;
         for r in ranges {
@@ -627,6 +629,9 @@ impl TextBlock {
         let mut draft = String::with_capacity(self.editor_text.len());
         let mut spans = Vec::new();
         let mut next = ranges.iter().peekable();
+        // Right after a replacement: a space here would join one the draft ends with.
+        let mut joined = false;
+        let spacing = |c: char| c != '\n' && c != '\r' && paragraph_separator(c);
         for ((byte, ch), source) in self.editor_text.char_indices().zip(self.char_sources()) {
             if let Some(r) = next.peek()
                 && byte >= r.start
@@ -637,7 +642,11 @@ impl TextBlock {
                 }
                 if byte.saturating_add(ch.len_utf8()) >= r.end {
                     next.next();
+                    joined = true;
                 }
+                continue;
+            }
+            if std::mem::take(&mut joined) && spacing(ch) && draft.chars().next_back().is_some_and(spacing) {
                 continue;
             }
             extend(&mut spans, draft.len(), ch.len_utf8(), source);
