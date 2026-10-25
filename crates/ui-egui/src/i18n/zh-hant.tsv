@@ -2443,6 +2443,14 @@ animation effects	Off	關
 	Add a paper size of your own to the list	將自己的紙張尺寸加入清單
 	Take this paper size off the list	從清單中移除此紙張尺寸
 	Remember this paper for {printer}	為 {printer} 記住此紙張
+	Create & Edit	建立與編輯
+	Review & Compare	審閱與比較
+	Forms & Signatures	表單與簽名
+	Protect & Standardize	保護與標準化
+	Customize & Automate	自訂與自動化
+	No tools match your search.	沒有符合搜尋的工具。
+	Expand all tools	展開所有工具
+	Collapse all tools	摺疊所有工具
 	Attach a file…	附加檔案…
 	Delete attachment	刪除附件
 	Attaching files is not available on the web yet	網頁版尚不支援附加檔案
@@ -2485,3 +2493,4 @@ animation effects	Off	關
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	今天
+@plural	{n} reply|{n} replies	{n} 則回覆

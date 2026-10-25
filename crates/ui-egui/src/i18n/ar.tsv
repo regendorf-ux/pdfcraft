@@ -2770,6 +2770,14 @@ certificate	Version	الإصدار
 	Add a paper size of your own to the list	أضف مقاس ورق خاصًا بك إلى القائمة
 	Take this paper size off the list	أزل مقاس الورق هذا من القائمة
 	Remember this paper for {printer}	تذكّر هذا الورق لـ {printer}
+	Create & Edit	الإنشاء والتحرير
+	Review & Compare	المراجعة والمقارنة
+	Forms & Signatures	النماذج والتوقيعات
+	Protect & Standardize	الحماية والتوحيد القياسي
+	Customize & Automate	التخصيص والأتمتة
+	No tools match your search.	لا توجد أدوات تطابق بحثك.
+	Expand all tools	توسيع كل الأدوات
+	Collapse all tools	طي كل الأدوات
 	Attach a file…	إرفاق ملف…
 	Delete attachment	حذف المرفق
 	Attaching files is not available on the web yet	إرفاق الملفات غير متاح على الويب بعد
@@ -2811,3 +2819,4 @@ certificate	Version	الإصدار
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	اليوم
+@plural	{n} reply|{n} replies	{n} رد|{n} رد|{n} ردّان|{n} ردود|{n} ردًا|{n} رد

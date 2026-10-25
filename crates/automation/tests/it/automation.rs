@@ -213,6 +213,49 @@ fn doc_info_lists_page_transitions_and_display_times() {
     );
 }
 
+/// `doc_info` says where the document opens: the `/OpenAction` destination, a named one
+/// resolved (ISO 32000-2 §12.3.2.4), as a 1-based page and a destination in view coordinates.
+#[test]
+fn doc_info_reports_the_open_destination() {
+    let dir = workdir("open-destination");
+    let write = |name: &str, catalog: &str| {
+        let objects: Vec<String> = vec![
+            format!("<< /Type /Catalog /Pages 2 0 R {catalog} >>"),
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 612 792] >>".into(),
+            "<< /Type /Page /Parent 2 0 R >>".into(),
+            "<< /Type /Page /Parent 2 0 R >>".into(),
+        ];
+        let mut bytes = b"%PDF-1.7\n".to_vec();
+        let mut offsets = Vec::new();
+        for (i, object) in objects.iter().enumerate() {
+            offsets.push(bytes.len());
+            bytes.extend_from_slice(format!("{} 0 obj\n{object}\nendobj\n", i + 1).as_bytes());
+        }
+        let xref = bytes.len();
+        bytes.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f \n", objects.len() + 1).as_bytes());
+        for o in offsets {
+            bytes.extend_from_slice(format!("{o:010} 00000 n \n").as_bytes());
+        }
+        bytes.extend_from_slice(format!("trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n", objects.len() + 1).as_bytes());
+        std::fs::write(dir.join(name), bytes).unwrap();
+    };
+    write("named.pdf", "/OpenAction << /S /GoTo /D /there >> /Dests << /there [4 0 R /XYZ 100 500 2] >>");
+    write("script.pdf", "/OpenAction << /S /JavaScript /JS (1) >>");
+    let mut a = auto(&dir);
+    let doc = ok(&mut a, "doc_open", json!({ "path": "named.pdf" }))["doc"].as_u64().unwrap();
+    let open = ok(&mut a, "doc_info", json!({ "doc": doc }))["open_destination"].clone();
+    assert_eq!(open["page"], 2, "{open}");
+    // y 500 is 292 points below the top of the 792-point page.
+    assert_eq!(
+        (open["destination"]["fit"].as_str(), open["destination"]["left"].as_f64(), open["destination"]["top"].as_f64()),
+        (Some("XYZ"), Some(100.0), Some(292.0)),
+        "{open}"
+    );
+    assert_eq!(open["destination"]["zoom"].as_f64(), Some(2.0));
+    let doc = ok(&mut a, "doc_open", json!({ "path": "script.pdf" }))["doc"].as_u64().unwrap();
+    assert!(ok(&mut a, "doc_info", json!({ "doc": doc }))["open_destination"].is_null());
+}
+
 /// Page transitions through the tools: set on chosen pages, written to the file as `/Trans` and
 /// `/Dur`, removed again, bad values refused, and one undo step. (Read through `pdfcraft_cos`,
 /// so this does not lean on `doc_info` listing them.)
@@ -2076,6 +2119,83 @@ fn nested_replies_stay_in_the_listing() {
     let root = list["comments"].as_array().unwrap().iter().find(|c| c["contents"] == "ROOT_NOTE").unwrap().clone();
     let replies: Vec<&str> = root["replies"].as_array().unwrap().iter().filter_map(|r| r["contents"].as_str()).collect();
     assert!(replies.contains(&"DIRECT_REPLY") && replies.contains(&"NESTED_REPLY"), "the nested reply is listed: {replies:?}");
+}
+
+/// Replies thread by their `/IRT` reference, not `/NM`: PyMuPDF names the first comment on every
+/// page `fitz-A0`. A shared id is refused rather than taken to mean page 1's comment.
+#[test]
+fn replies_thread_by_reference_when_ids_repeat_across_pages() {
+    let dir = workdir("repeated-ids");
+    // Contributor-original PDF, shaped like PyMuPDF output.
+    std::fs::write(
+        dir.join("fitz.pdf"),
+        b"%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Annots [5 0 R] >> endobj
+4 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Annots [6 0 R 7 0 R] >> endobj
+5 0 obj << /Type /Annot /Subtype /Text /Rect [20 140 40 160] /NM (fitz-A0) /T (Alpha) /Contents (COVER) >> endobj
+6 0 obj << /Type /Annot /Subtype /Text /Rect [20 140 40 160] /NM (fitz-A0) /T (Beta) /Contents (SECOND) >> endobj
+7 0 obj << /Type /Annot /Subtype /Text /Rect [20 100 40 120] /NM (fitz-A1) /IRT 6 0 R /T (Gamma) /Contents (ANSWER) >> endobj
+trailer << /Root 1 0 R >>
+%%EOF",
+    )
+    .unwrap();
+    let mut a = auto(&dir);
+    let doc = ok(&mut a, "doc_open", json!({ "path": "fitz.pdf" }))["doc"].as_u64().unwrap();
+    let replies = |a: &mut Automation| -> Vec<(String, Vec<String>)> {
+        let list = ok(a, "comment_list", json!({ "doc": doc }));
+        list["comments"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| {
+                let mut texts: Vec<String> =
+                    c["replies"].as_array().unwrap().iter().filter_map(|r| r["contents"].as_str().map(String::from)).collect();
+                texts.sort();
+                (c["contents"].as_str().unwrap().to_string(), texts)
+            })
+            .collect()
+    };
+    assert_eq!(replies(&mut a), [("COVER".into(), vec![]), ("SECOND".into(), vec!["ANSWER".to_string()])]);
+    let refused = err(&mut a, "comment_reply", json!({ "doc": doc, "id": "fitz-A0", "text": "LATER" }));
+    assert!(refused.to_string().contains("several comments"), "{refused}");
+    ok(&mut a, "comment_reply", json!({ "doc": doc, "page": 2, "index": 1, "text": "LATER" }));
+    assert_eq!(replies(&mut a), [("COVER".into(), vec![]), ("SECOND".into(), vec!["ANSWER".to_string(), "LATER".to_string()])]);
+}
+
+/// A status or checkmark belongs to the annotation its `/IRT` names: one set on a reply is not
+/// its comment's, as the Comments panel shows it, and is reported on the reply. One whose
+/// annotation can't be found is not a comment of its own.
+#[test]
+fn a_checkmark_on_a_reply_is_not_its_comments() {
+    let dir = workdir("reply-checkmark");
+    // Contributor-original PDF: a comment, a reply, a checkmark and a status on the reply, and a
+    // status whose annotation (object 9) doesn't exist.
+    std::fs::write(
+        dir.join("checked.pdf"),
+        b"%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Annots [4 0 R 5 0 R 6 0 R 7 0 R 8 0 R] >> endobj
+4 0 obj << /Type /Annot /Subtype /Text /Rect [100 100 120 120] /T (Alpha) /Contents (COMMENT) >> endobj
+5 0 obj << /Type /Annot /Subtype /Text /Rect [100 60 120 80] /IRT 4 0 R /T (Beta) /Contents (REPLY) >> endobj
+6 0 obj << /Type /Annot /Subtype /Text /Rect [100 60 120 80] /IRT 5 0 R /T (Beta) /StateModel /Marked /State /Marked >> endobj
+7 0 obj << /Type /Annot /Subtype /Text /Rect [100 60 120 80] /IRT 5 0 R /T (Beta) /StateModel /Review /State /Accepted >> endobj
+8 0 obj << /Type /Annot /Subtype /Text /Rect [200 20 220 40] /F 30 /IRT 9 0 R /T (Gamma) /StateModel /Review /State /Rejected >> endobj
+trailer << /Root 1 0 R >>
+%%EOF",
+    )
+    .unwrap();
+    let mut a = auto(&dir);
+    let doc = ok(&mut a, "doc_open", json!({ "path": "checked.pdf" }))["doc"].as_u64().unwrap();
+    let list = ok(&mut a, "comment_list", json!({ "doc": doc }));
+    assert_eq!(list["count"], 1, "{list}");
+    let c = &list["comments"][0];
+    assert_eq!((&c["marked"], &c["status"]), (&json!(false), &Value::Null), "{c}");
+    assert_eq!(c["replies"].as_array().map(Vec::len), Some(1), "the reply, not its states: {c}");
+    let reply = &c["replies"][0];
+    assert_eq!((&reply["marked"], &reply["status"]), (&json!(true), &json!("Accepted")), "{reply}");
 }
 
 #[test]
@@ -8892,6 +9012,34 @@ fn bookmark_list_reports_colour_and_style() {
     let mut b = auto(&dir);
     let re = ok(&mut b, "doc_open", json!({ "path": "restyled.pdf" }))["doc"].as_u64().unwrap();
     assert_eq!(style(&ok(&mut b, "bookmark_list", json!({ "doc": re }))["bookmarks"]), style(&set), "saved");
+}
+
+/// An editable combo box (ISO 32000-2 Table 233, Edit) takes a value that isn't one of its
+/// options, and its page appearance shows it, before and after a save; one without Edit takes
+/// only its options.
+#[test]
+fn form_fill_takes_free_text_only_in_an_editable_combo_box() {
+    let dir = workdir("editable-combo");
+    let mut a = auto(&dir);
+    let doc = ok(&mut a, "doc_open", json!({ "path": "a.pdf" }))["doc"].as_u64().unwrap();
+    let combo = |name: &str, top: f64, editable: bool| json!({ "doc": doc, "page": 1, "type": "combo", "rect": [20, top, 200, top + 22.0], "name": name, "options": ["Apple", "Banana"], "editable": editable });
+    ok(&mut a, "form_add_field", combo("fruit", 20.0, true));
+    ok(&mut a, "form_add_field", combo("veg", 60.0, false));
+    ok(&mut a, "form_fill", json!({ "doc": doc, "values": { "fruit": "Cherry" } }));
+    assert!(page_text(&mut a, doc)[0].contains("Cherry"), "the typed value is drawn");
+    let refused = err(&mut a, "form_fill", json!({ "doc": doc, "values": { "veg": "Cherry" } }));
+    assert!(matches!(&refused, ToolError::Failed(m) | ToolError::InvalidArgs(m) if m.contains("no option")), "{refused:?}");
+    // A choice from the list still works in both.
+    ok(&mut a, "form_fill", json!({ "doc": doc, "values": { "veg": "Banana" } }));
+    ok(&mut a, "doc_save", json!({ "doc": doc, "path": "filled.pdf" }));
+    let saved = ok(&mut a, "doc_open", json!({ "path": "filled.pdf" }))["doc"].as_u64().unwrap();
+    let fields = ok(&mut a, "form_fields", json!({ "doc": saved }));
+    let value = |name: &str| fields["fields"].as_array().unwrap().iter().find(|f| f["name"] == name).map(|f| f["value"].clone());
+    assert_eq!(value("fruit"), Some(json!("Cherry")), "{fields}");
+    assert_eq!(value("veg"), Some(json!("Banana")), "{fields}");
+    let text = page_text(&mut a, saved);
+    assert!(text[0].contains("Cherry") && text[0].contains("Banana"), "{text:?}");
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// `page_render`'s pixels show a rubber stamp written without an appearance as the stamp its
