@@ -2492,6 +2492,14 @@ animation effects	Off	Kapalı
 	Save and Rename	Kaydet ve yeniden adlandır
 	Renamed to {name}	{name} olarak yeniden adlandırıldı
 	Couldn't rename {name}: {e}	{name} yeniden adlandırılamadı: {e}
+	Create & Edit	Oluştur ve Düzenle
+	Review & Compare	İncele ve Karşılaştır
+	Forms & Signatures	Formlar ve İmzalar
+	Protect & Standardize	Koru ve Standartlaştır
+	Customize & Automate	Özelleştir ve Otomatikleştir
+	No tools match your search.	Aramanızla eşleşen araç yok.
+	Expand all tools	Tüm araçları genişlet
+	Collapse all tools	Tüm araçları daralt
 	Attach a file…	Dosya ekle…
 	Delete attachment	Eki sil
 	Attaching files is not available on the web yet	Dosya eklemek web'de henüz kullanılamıyor
@@ -2534,3 +2542,4 @@ animation effects	Off	Kapalı
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Bugün
+@plural	{n} reply|{n} replies	{n} yanıt

@@ -2496,6 +2496,14 @@ animation effects	Off	Désactivés
 	Save and Rename	Enregistrer et renommer
 	Renamed to {name}	Renommé en {name}
 	Couldn't rename {name}: {e}	Impossible de renommer {name} : {e}
+	Create & Edit	Créer et modifier
+	Review & Compare	Réviser et comparer
+	Forms & Signatures	Formulaires et signatures
+	Protect & Standardize	Protéger et normaliser
+	Customize & Automate	Personnaliser et automatiser
+	No tools match your search.	Aucun outil ne correspond à votre recherche.
+	Expand all tools	Développer tous les outils
+	Collapse all tools	Réduire tous les outils
 	Attach a file…	Joindre un fichier…
 	Delete attachment	Supprimer la pièce jointe
 	Attaching files is not available on the web yet	Joindre des fichiers n'est pas encore disponible sur le web
@@ -2804,3 +2812,4 @@ certificate	Version	Version
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Aujourd'hui
+@plural	{n} reply|{n} replies	{n} réponse|{n} réponses

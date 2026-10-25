@@ -2497,6 +2497,14 @@ animation effects	Off	Aus
 	Save and Rename	Speichern und umbenennen
 	Renamed to {name}	Umbenannt in {name}
 	Couldn't rename {name}: {e}	{name} konnte nicht umbenannt werden: {e}
+	Create & Edit	Erstellen & Bearbeiten
+	Review & Compare	Prüfen & Vergleichen
+	Forms & Signatures	Formulare & Signaturen
+	Protect & Standardize	Schützen & Standardisieren
+	Customize & Automate	Anpassen & Automatisieren
+	No tools match your search.	Keine Werkzeuge entsprechen Ihrer Suche.
+	Expand all tools	Alle Werkzeuge ausklappen
+	Collapse all tools	Alle Werkzeuge einklappen
 	Attach a file…	Datei anhängen…
 	Delete attachment	Anhang löschen
 	Attaching files is not available on the web yet	Dateien anhängen ist im Web noch nicht verfügbar
@@ -2539,3 +2547,4 @@ animation effects	Off	Aus
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Heute
+@plural	{n} reply|{n} replies	{n} Antwort|{n} Antworten
