@@ -2716,6 +2716,14 @@ certificate	SHA-256 digest	Impronta SHA-256
 	Your email app couldn't log on to your mailbox.	L'app di posta non è riuscita ad accedere alla tua casella.
 	Your email app didn't open a message. It said: {why}.	L'app di posta non ha aperto un messaggio. Ha detto: {why}.
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	Apri un nuovo messaggio senza il file e PdfCraft mostrerà {name} nella sua cartella, così potrai allegarlo tu.
+	Create & Edit	Crea e modifica
+	Review & Compare	Revisione e confronto
+	Forms & Signatures	Moduli e firme
+	Protect & Standardize	Proteggi e standardizza
+	Customize & Automate	Personalizza e automatizza
+	No tools match your search.	Nessuno strumento corrisponde alla ricerca.
+	Expand all tools	Espandi tutti gli strumenti
+	Collapse all tools	Comprimi tutti gli strumenti
 	Attach a file…	Allega un file…
 	Delete attachment	Elimina allegato
 	Attaching files is not available on the web yet	Allegare file non è ancora disponibile sul web
@@ -2778,3 +2786,4 @@ certificate	SHA-256 digest	Impronta SHA-256
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Oggi
+@plural	{n} reply|{n} replies	{n} risposta|{n} risposte

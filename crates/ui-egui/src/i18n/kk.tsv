@@ -2502,6 +2502,14 @@ animation effects	Off	Өшірулі
 	Your email app couldn't log on to your mailbox.	Email қосымшаңыз пошта жәшігіңізге кіре алмады.
 	Your email app didn't open a message. It said: {why}.	Email қосымшаңыз хатты ашпады. Ол былай деді: {why}.
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	Файлсыз жаңа хат ашыңыз, PdfCraft {name} файлын қалтасында көрсетеді, оны өзіңіз тіркей аласыз.
+	Create & Edit	Жасау және өңдеу
+	Review & Compare	Шолу және салыстыру
+	Forms & Signatures	Пішіндер және қолтаңбалар
+	Protect & Standardize	Қорғау және стандарттау
+	Customize & Automate	Баптау және автоматтандыру
+	No tools match your search.	Іздеуге сәйкес құралдар жоқ.
+	Expand all tools	Барлық құралдарды жаю
+	Collapse all tools	Барлық құралдарды жию
 	Attach a file…	Файл тіркеу…
 	Delete attachment	Тіркемені жою
 	Attaching files is not available on the web yet	Вебте файл тіркеу әзірге қолжетімсіз
@@ -2544,3 +2552,4 @@ animation effects	Off	Өшірулі
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Бүгін
+@plural	{n} reply|{n} replies	{n} жауап|{n} жауап

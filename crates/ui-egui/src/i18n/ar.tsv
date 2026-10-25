@@ -2781,6 +2781,14 @@ certificate	Version	الإصدار
 	Your email app couldn't log on to your mailbox.	تعذّر على تطبيق البريد تسجيل الدخول إلى صندوق بريدك.
 	Your email app didn't open a message. It said: {why}.	لم يفتح تطبيق البريد رسالة. قال: {why}.
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	افتح رسالة جديدة بدونه، وسيُظهر PdfCraft الملف {name} في مجلده لتتمكن من إرفاقه بنفسك.
+	Create & Edit	الإنشاء والتحرير
+	Review & Compare	المراجعة والمقارنة
+	Forms & Signatures	النماذج والتوقيعات
+	Protect & Standardize	الحماية والتوحيد القياسي
+	Customize & Automate	التخصيص والأتمتة
+	No tools match your search.	لا توجد أدوات تطابق بحثك.
+	Expand all tools	توسيع كل الأدوات
+	Collapse all tools	طي كل الأدوات
 	Attach a file…	إرفاق ملف…
 	Delete attachment	حذف المرفق
 	Attaching files is not available on the web yet	إرفاق الملفات غير متاح على الويب بعد
@@ -2822,3 +2830,4 @@ certificate	Version	الإصدار
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	اليوم
+@plural	{n} reply|{n} replies	{n} رد|{n} رد|{n} ردّان|{n} ردود|{n} ردًا|{n} رد

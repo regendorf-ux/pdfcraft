@@ -2468,6 +2468,14 @@ animation effects	Off	关
 	Your email app couldn't log on to your mailbox.	邮件应用无法登录你的邮箱。
 	Your email app didn't open a message. It said: {why}.	邮件应用没有打开邮件。它的回复：{why}。
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	请打开一封不带附件的新邮件，PdfCraft 会在文件夹中显示 {name}，以便你自行附加。
+	Create & Edit	创建和编辑
+	Review & Compare	审阅和比较
+	Forms & Signatures	表单和签名
+	Protect & Standardize	保护和标准化
+	Customize & Automate	自定义和自动化
+	No tools match your search.	没有与搜索匹配的工具。
+	Expand all tools	展开所有工具
+	Collapse all tools	折叠所有工具
 	Attach a file…	附加文件…
 	Delete attachment	删除附件
 	Attaching files is not available on the web yet	网页版尚不支持附加文件
@@ -2510,3 +2518,4 @@ animation effects	Off	关
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	今天
+@plural	{n} reply|{n} replies	{n} 条回复

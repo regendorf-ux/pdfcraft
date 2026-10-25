@@ -2505,6 +2505,14 @@ animation effects	Off	Aus
 	Your email app couldn't log on to your mailbox.	Deine E-Mail-App konnte sich nicht bei deinem Postfach anmelden.
 	Your email app didn't open a message. It said: {why}.	Deine E-Mail-App hat keine Nachricht geöffnet. Sie meldete: {why}.
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	Öffne eine neue Nachricht ohne die Datei; PdfCraft zeigt {name} in ihrem Ordner, damit du sie selbst anhängen kannst.
+	Create & Edit	Erstellen & Bearbeiten
+	Review & Compare	Prüfen & Vergleichen
+	Forms & Signatures	Formulare & Signaturen
+	Protect & Standardize	Schützen & Standardisieren
+	Customize & Automate	Anpassen & Automatisieren
+	No tools match your search.	Keine Werkzeuge entsprechen Ihrer Suche.
+	Expand all tools	Alle Werkzeuge ausklappen
+	Collapse all tools	Alle Werkzeuge einklappen
 	Attach a file…	Datei anhängen…
 	Delete attachment	Anhang löschen
 	Attaching files is not available on the web yet	Dateien anhängen ist im Web noch nicht verfügbar
@@ -2547,3 +2555,4 @@ animation effects	Off	Aus
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Heute
+@plural	{n} reply|{n} replies	{n} Antwort|{n} Antworten

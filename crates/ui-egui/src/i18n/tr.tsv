@@ -2500,6 +2500,14 @@ animation effects	Off	Kapalı
 	Your email app couldn't log on to your mailbox.	E-posta uygulamanız posta kutunuzda oturum açamadı.
 	Your email app didn't open a message. It said: {why}.	E-posta uygulamanız bir ileti açmadı. Yanıtı: {why}.
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	Dosya olmadan yeni bir ileti açın; PdfCraft, {name} dosyasını klasöründe gösterecek, böylece kendiniz ekleyebilirsiniz.
+	Create & Edit	Oluştur ve Düzenle
+	Review & Compare	İncele ve Karşılaştır
+	Forms & Signatures	Formlar ve İmzalar
+	Protect & Standardize	Koru ve Standartlaştır
+	Customize & Automate	Özelleştir ve Otomatikleştir
+	No tools match your search.	Aramanızla eşleşen araç yok.
+	Expand all tools	Tüm araçları genişlet
+	Collapse all tools	Tüm araçları daralt
 	Attach a file…	Dosya ekle…
 	Delete attachment	Eki sil
 	Attaching files is not available on the web yet	Dosya eklemek web'de henüz kullanılamıyor
@@ -2542,3 +2550,4 @@ animation effects	Off	Kapalı
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Bugün
+@plural	{n} reply|{n} replies	{n} yanıt

@@ -2504,6 +2504,14 @@ animation effects	Off	Désactivés
 	Your email app couldn't log on to your mailbox.	Votre application de courrier n'a pas pu se connecter à votre boîte aux lettres.
 	Your email app didn't open a message. It said: {why}.	Votre application de courrier n'a pas ouvert de message. Elle a indiqué : {why}.
 	Open a new message without it, and PdfCraft will show {name} in its folder so you can attach it yourself.	Ouvrez un nouveau message sans lui, et PdfCraft affichera {name} dans son dossier pour que vous le joigniez vous-même.
+	Create & Edit	Créer et modifier
+	Review & Compare	Réviser et comparer
+	Forms & Signatures	Formulaires et signatures
+	Protect & Standardize	Protéger et normaliser
+	Customize & Automate	Personnaliser et automatiser
+	No tools match your search.	Aucun outil ne correspond à votre recherche.
+	Expand all tools	Développer tous les outils
+	Collapse all tools	Réduire tous les outils
 	Attach a file…	Joindre un fichier…
 	Delete attachment	Supprimer la pièce jointe
 	Attaching files is not available on the web yet	Joindre des fichiers n'est pas encore disponible sur le web
@@ -2812,3 +2820,4 @@ certificate	Version	Version
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Aujourd'hui
+@plural	{n} reply|{n} replies	{n} réponse|{n} réponses
