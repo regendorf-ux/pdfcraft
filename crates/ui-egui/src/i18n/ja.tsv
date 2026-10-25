@@ -2494,6 +2494,14 @@ animation effects	Off	オフ
 	Save as image	画像として保存
 	Selected area (page {page}, {size})	選択範囲（{page} ページ、{size}）
 	The selected area is no longer on a page of this document.	選択範囲はもうこの文書のページ上にありません。
+	Create & Edit	作成と編集
+	Review & Compare	レビューと比較
+	Forms & Signatures	フォームと署名
+	Protect & Standardize	保護と標準化
+	Customize & Automate	カスタマイズと自動化
+	No tools match your search.	検索に一致するツールはありません。
+	Expand all tools	すべてのツールを展開
+	Collapse all tools	すべてのツールを折りたたむ
 	Attach a file…	ファイルを添付…
 	Delete attachment	添付ファイルを削除
 	Attaching files is not available on the web yet	Web 版ではまだファイルを添付できません
@@ -2536,3 +2544,4 @@ animation effects	Off	オフ
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	今日
+@plural	{n} reply|{n} replies	{n} 件の返信

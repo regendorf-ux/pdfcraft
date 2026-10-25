@@ -2516,6 +2516,14 @@ animation effects	Off	Вимкнено
 	Save as image	Зберегти як зображення
 	Selected area (page {page}, {size})	Вибрана область (сторінка {page}, {size})
 	The selected area is no longer on a page of this document.	Вибраної області більше немає на жодній сторінці цього документа.
+	Create & Edit	Створення й редагування
+	Review & Compare	Рецензування й порівняння
+	Forms & Signatures	Форми й підписи
+	Protect & Standardize	Захист і стандартизація
+	Customize & Automate	Налаштування й автоматизація
+	No tools match your search.	Немає інструментів, що відповідають пошуку.
+	Expand all tools	Розгорнути всі інструменти
+	Collapse all tools	Згорнути всі інструменти
 	Attach a file…	Прикріпити файл…
 	Delete attachment	Видалити вкладення
 	Attaching files is not available on the web yet	Прикріплення файлів у веб-версії поки недоступне
@@ -2558,3 +2566,4 @@ animation effects	Off	Вимкнено
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Сьогодні
+@plural	{n} reply|{n} replies	{n} відповідь|{n} відповіді|{n} відповідей
