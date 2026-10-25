@@ -2499,6 +2499,14 @@ animation effects	Off	Désactivés
 	The text reflows to the reader's screen and font size, in chapters, with the bookmarks as the contents.	Le texte s’adapte à l’écran et à la taille de police du lecteur, en chapitres, avec les signets comme table des matières.
 	Each page as it looks, its text kept searchable. For documents whose layout matters.	Chaque page telle qu’elle apparaît, son texte restant consultable par recherche. Pour les documents dont la mise en page compte.
 	Exported {name}	{name} exporté
+	Create & Edit	Créer et modifier
+	Review & Compare	Réviser et comparer
+	Forms & Signatures	Formulaires et signatures
+	Protect & Standardize	Protéger et normaliser
+	Customize & Automate	Personnaliser et automatiser
+	No tools match your search.	Aucun outil ne correspond à votre recherche.
+	Expand all tools	Développer tous les outils
+	Collapse all tools	Réduire tous les outils
 	Attach a file…	Joindre un fichier…
 	Delete attachment	Supprimer la pièce jointe
 	Attaching files is not available on the web yet	Joindre des fichiers n'est pas encore disponible sur le web
@@ -2807,3 +2815,4 @@ certificate	Version	Version
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Aujourd'hui
+@plural	{n} reply|{n} replies	{n} réponse|{n} réponses

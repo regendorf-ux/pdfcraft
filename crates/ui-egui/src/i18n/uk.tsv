@@ -2521,6 +2521,14 @@ animation effects	Off	Вимкнено
 	The text reflows to the reader's screen and font size, in chapters, with the bookmarks as the contents.	Текст підлаштовується під екран і розмір шрифту читача, поділений на розділи, закладки стають змістом.
 	Each page as it looks, its text kept searchable. For documents whose layout matters.	Кожна сторінка такою, як виглядає, а її текст лишається доступним для пошуку. Для документів, де важливий макет.
 	Exported {name}	Експортовано {name}
+	Create & Edit	Створення й редагування
+	Review & Compare	Рецензування й порівняння
+	Forms & Signatures	Форми й підписи
+	Protect & Standardize	Захист і стандартизація
+	Customize & Automate	Налаштування й автоматизація
+	No tools match your search.	Немає інструментів, що відповідають пошуку.
+	Expand all tools	Розгорнути всі інструменти
+	Collapse all tools	Згорнути всі інструменти
 	Attach a file…	Прикріпити файл…
 	Delete attachment	Видалити вкладення
 	Attaching files is not available on the web yet	Прикріплення файлів у веб-версії поки недоступне
@@ -2563,3 +2571,4 @@ animation effects	Off	Вимкнено
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Сьогодні
+@plural	{n} reply|{n} replies	{n} відповідь|{n} відповіді|{n} відповідей

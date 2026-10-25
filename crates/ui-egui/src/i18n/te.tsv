@@ -2408,6 +2408,14 @@ animation effects	Off	ఆఫ్
 	The text reflows to the reader's screen and font size, in chapters, with the bookmarks as the contents.	పాఠ్యం పాఠకుడి స్క్రీన్‌కు, ఫాంట్ పరిమాణానికి అనుగుణంగా అధ్యాయాలుగా సర్దుకుంటుంది, బుక్‌మార్క్‌లు విషయసూచికగా ఉంటాయి.
 	Each page as it looks, its text kept searchable. For documents whose layout matters.	ప్రతి పేజీ కనిపించినట్లే, దాని పాఠ్యం శోధించదగినదిగా ఉంటుంది. లేఅవుట్ ముఖ్యమైన పత్రాల కోసం.
 	Exported {name}	{name} ఎగుమతి చేయబడింది
+	Create & Edit	సృష్టించు & సవరించు
+	Review & Compare	సమీక్షించు & పోల్చు
+	Forms & Signatures	ఫారమ్‌లు & సంతకాలు
+	Protect & Standardize	రక్షించు & ప్రామాణీకరించు
+	Customize & Automate	అనుకూలీకరించు & ఆటోమేట్ చేయి
+	No tools match your search.	మీ శోధనకు సరిపోలే సాధనాలు లేవు.
+	Expand all tools	అన్ని సాధనాలను విస్తరించు
+	Collapse all tools	అన్ని సాధనాలను కుదించు
 	Attach a file…	ఫైల్‌ను జోడించు…
 	Delete attachment	జోడింపును తొలగించు
 	Attaching files is not available on the web yet	వెబ్‌లో ఫైల్‌లను జోడించడం ఇంకా అందుబాటులో లేదు
@@ -2450,3 +2458,4 @@ animation effects	Off	ఆఫ్
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	ఈరోజు
+@plural	{n} reply|{n} replies	{n} ప్రత్యుత్తరం|{n} ప్రత్యుత్తరాలు

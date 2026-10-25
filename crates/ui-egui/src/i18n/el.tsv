@@ -2505,6 +2505,14 @@ animation effects	Off	Ανενεργά
 	The text reflows to the reader's screen and font size, in chapters, with the bookmarks as the contents.	Το κείμενο προσαρμόζεται στην οθόνη και στο μέγεθος γραμματοσειράς του αναγνώστη, σε κεφάλαια, με τους σελιδοδείκτες ως περιεχόμενα.
 	Each page as it looks, its text kept searchable. For documents whose layout matters.	Κάθε σελίδα όπως φαίνεται, με το κείμενό της να παραμένει αναζητήσιμο. Για έγγραφα όπου η διάταξη έχει σημασία.
 	Exported {name}	Έγινε εξαγωγή του {name}
+	Create & Edit	Δημιουργία και επεξεργασία
+	Review & Compare	Αναθεώρηση και σύγκριση
+	Forms & Signatures	Φόρμες και υπογραφές
+	Protect & Standardize	Προστασία και τυποποίηση
+	Customize & Automate	Προσαρμογή και αυτοματοποίηση
+	No tools match your search.	Κανένα εργαλείο δεν ταιριάζει με την αναζήτησή σας.
+	Expand all tools	Ανάπτυξη όλων των εργαλείων
+	Collapse all tools	Σύμπτυξη όλων των εργαλείων
 	Attach a file…	Επισύναψη αρχείου…
 	Delete attachment	Διαγραφή συνημμένου
 	Attaching files is not available on the web yet	Η επισύναψη αρχείων δεν είναι ακόμη διαθέσιμη στον ιστό
@@ -2547,3 +2555,4 @@ animation effects	Off	Ανενεργά
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Σήμερα
+@plural	{n} reply|{n} replies	{n} απάντηση|{n} απαντήσεις

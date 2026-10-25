@@ -2513,6 +2513,14 @@ animation effects	Off	Desativados
 	The text reflows to the reader's screen and font size, in chapters, with the bookmarks as the contents.	O texto se ajusta à tela e ao tamanho da fonte do leitor, em capítulos, com os marcadores como sumário.
 	Each page as it looks, its text kept searchable. For documents whose layout matters.	Cada página como ela aparece, com o texto ainda pesquisável. Para documentos em que o layout importa.
 	Exported {name}	{name} exportado
+	Create & Edit	Criar e editar
+	Review & Compare	Revisar e comparar
+	Forms & Signatures	Formulários e assinaturas
+	Protect & Standardize	Proteger e padronizar
+	Customize & Automate	Personalizar e automatizar
+	No tools match your search.	Nenhuma ferramenta corresponde à pesquisa.
+	Expand all tools	Expandir todas as ferramentas
+	Collapse all tools	Recolher todas as ferramentas
 	Attach a file…	Anexar um arquivo…
 	Delete attachment	Excluir anexo
 	Attaching files is not available on the web yet	Anexar arquivos ainda não está disponível na web
@@ -2826,3 +2834,4 @@ theme	Appearance	Aparência
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Hoje
+@plural	{n} reply|{n} replies	{n} resposta|{n} respostas

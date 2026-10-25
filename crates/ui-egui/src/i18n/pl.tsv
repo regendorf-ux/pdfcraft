@@ -2475,6 +2475,14 @@ animation effects	Off	Wyłączone
 	The text reflows to the reader's screen and font size, in chapters, with the bookmarks as the contents.	Tekst dopasowuje się do ekranu i rozmiaru czcionki czytelnika, w rozdziałach, z zakładkami jako spisem treści.
 	Each page as it looks, its text kept searchable. For documents whose layout matters.	Każda strona tak, jak wygląda, a jej tekst nadal można przeszukiwać. Dla dokumentów, w których liczy się układ.
 	Exported {name}	Wyeksportowano {name}
+	Create & Edit	Tworzenie i edycja
+	Review & Compare	Recenzja i porównanie
+	Forms & Signatures	Formularze i podpisy
+	Protect & Standardize	Ochrona i standaryzacja
+	Customize & Automate	Dostosowanie i automatyzacja
+	No tools match your search.	Żadne narzędzie nie pasuje do wyszukiwania.
+	Expand all tools	Rozwiń wszystkie narzędzia
+	Collapse all tools	Zwiń wszystkie narzędzia
 	Attach a file…	Dołącz plik…
 	Delete attachment	Usuń załącznik
 	Attaching files is not available on the web yet	Dołączanie plików nie jest jeszcze dostępne w wersji webowej
@@ -2637,3 +2645,4 @@ animation effects	Off	Wyłączone
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Dzisiaj
+@plural	{n} reply|{n} replies	{n} odpowiedź|{n} odpowiedzi|{n} odpowiedzi
