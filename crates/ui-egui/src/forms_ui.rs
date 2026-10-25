@@ -322,7 +322,8 @@ pub(crate) fn commit(view: &mut DocView, form: &[FormField]) {
 #[allow(clippy::too_many_arguments)]
 fn combo_editor(ctx: &egui::Context, view: &mut DocView, form: &[FormField], f: &FormField, w: &FormWidget, rect: Rect, zoom: f32, widget: usize) {
     let mut enter = false;
-    egui::Area::new(egui::Id::new(("form-editor", view.view_key())))
+    let view_key = view.view_key();
+    egui::Area::new(egui::Id::new(("form-editor", view_key)))
         .fade_in(false)
         .order(egui::Order::Foreground)
         .fixed_pos(rect.min)
@@ -340,7 +341,7 @@ fn combo_editor(ctx: &egui::Context, view: &mut DocView, form: &[FormField], f: 
                 .background_color(FIELD_FILL)
                 .text_color(Color32::BLACK)
                 .margin(egui::Margin::symmetric(3, 1))
-                .id(egui::Id::new(("form-field", view.view_key(), &f.name, widget)));
+                .id(egui::Id::new(("form-field", view_key, &f.name, widget)));
             let r = ui.add_sized(rect.size(), te);
             if std::mem::take(&mut fx.request_focus) {
                 r.request_focus();
