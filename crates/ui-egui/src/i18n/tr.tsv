@@ -2486,6 +2486,14 @@ animation effects	Off	Kapalı
 	Pages selected	Seçilen sayfalar
 	Page properties	Sayfa özellikleri
 	Between paragraphs: press Enter in the box to start one	Paragraflar arasında: yeni bir paragraf başlatmak için kutuda Enter'a basın
+	Create & Edit	Oluştur ve Düzenle
+	Review & Compare	İncele ve Karşılaştır
+	Forms & Signatures	Formlar ve İmzalar
+	Protect & Standardize	Koru ve Standartlaştır
+	Customize & Automate	Özelleştir ve Otomatikleştir
+	No tools match your search.	Aramanızla eşleşen araç yok.
+	Expand all tools	Tüm araçları genişlet
+	Collapse all tools	Tüm araçları daralt
 	Attach a file…	Dosya ekle…
 	Delete attachment	Eki sil
 	Attaching files is not available on the web yet	Dosya eklemek web'de henüz kullanılamıyor
@@ -2528,3 +2536,4 @@ animation effects	Off	Kapalı
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Bugün
+@plural	{n} reply|{n} replies	{n} yanıt
