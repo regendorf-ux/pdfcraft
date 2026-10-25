@@ -2510,6 +2510,14 @@ animation effects	Off	Ανενεργά
 	pure black stays 100% K or gray 0 instead of a mix	το καθαρό μαύρο μένει 100% K ή γκρι 0 αντί για μείγμα
 	re-encoded in the target space; JPEGs stay JPEG	επανακωδικοποιούνται στον χώρο προορισμού· τα JPEG μένουν JPEG
 	their appearances as well as the page	η εμφάνισή τους καθώς και η σελίδα
+	Create & Edit	Δημιουργία και επεξεργασία
+	Review & Compare	Αναθεώρηση και σύγκριση
+	Forms & Signatures	Φόρμες και υπογραφές
+	Protect & Standardize	Προστασία και τυποποίηση
+	Customize & Automate	Προσαρμογή και αυτοματοποίηση
+	No tools match your search.	Κανένα εργαλείο δεν ταιριάζει με την αναζήτησή σας.
+	Expand all tools	Ανάπτυξη όλων των εργαλείων
+	Collapse all tools	Σύμπτυξη όλων των εργαλείων
 	Attach a file…	Επισύναψη αρχείου…
 	Delete attachment	Διαγραφή συνημμένου
 	Attaching files is not available on the web yet	Η επισύναψη αρχείων δεν είναι ακόμη διαθέσιμη στον ιστό
@@ -2552,3 +2560,4 @@ animation effects	Off	Ανενεργά
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Σήμερα
+@plural	{n} reply|{n} replies	{n} απάντηση|{n} απαντήσεις

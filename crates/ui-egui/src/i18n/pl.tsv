@@ -2480,6 +2480,14 @@ animation effects	Off	Wyłączone
 	pure black stays 100% K or gray 0 instead of a mix	czysta czerń zostaje 100% K lub szarością 0 zamiast mieszanki
 	re-encoded in the target space; JPEGs stay JPEG	przekodowane w przestrzeni docelowej; JPEG zostają JPEG
 	their appearances as well as the page	ich wygląd oraz strona
+	Create & Edit	Tworzenie i edycja
+	Review & Compare	Recenzja i porównanie
+	Forms & Signatures	Formularze i podpisy
+	Protect & Standardize	Ochrona i standaryzacja
+	Customize & Automate	Dostosowanie i automatyzacja
+	No tools match your search.	Żadne narzędzie nie pasuje do wyszukiwania.
+	Expand all tools	Rozwiń wszystkie narzędzia
+	Collapse all tools	Zwiń wszystkie narzędzia
 	Attach a file…	Dołącz plik…
 	Delete attachment	Usuń załącznik
 	Attaching files is not available on the web yet	Dołączanie plików nie jest jeszcze dostępne w wersji webowej
@@ -2642,3 +2650,4 @@ animation effects	Off	Wyłączone
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Dzisiaj
+@plural	{n} reply|{n} replies	{n} odpowiedź|{n} odpowiedzi|{n} odpowiedzi

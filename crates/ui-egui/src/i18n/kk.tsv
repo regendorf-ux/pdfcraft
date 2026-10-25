@@ -2502,6 +2502,14 @@ animation effects	Off	Өшірулі
 	pure black stays 100% K or gray 0 instead of a mix	таза қара қоспа емес, 100% K немесе 0 сұр болып қалады
 	re-encoded in the target space; JPEGs stay JPEG	мақсатты кеңістікте қайта кодталады; JPEG JPEG болып қалады
 	their appearances as well as the page	олардың көрінісі және бет
+	Create & Edit	Жасау және өңдеу
+	Review & Compare	Шолу және салыстыру
+	Forms & Signatures	Пішіндер және қолтаңбалар
+	Protect & Standardize	Қорғау және стандарттау
+	Customize & Automate	Баптау және автоматтандыру
+	No tools match your search.	Іздеуге сәйкес құралдар жоқ.
+	Expand all tools	Барлық құралдарды жаю
+	Collapse all tools	Барлық құралдарды жию
 	Attach a file…	Файл тіркеу…
 	Delete attachment	Тіркемені жою
 	Attaching files is not available on the web yet	Вебте файл тіркеу әзірге қолжетімсіз
@@ -2544,3 +2552,4 @@ animation effects	Off	Өшірулі
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Бүгін
+@plural	{n} reply|{n} replies	{n} жауап|{n} жауап

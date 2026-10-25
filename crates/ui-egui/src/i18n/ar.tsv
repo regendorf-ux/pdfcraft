@@ -2781,6 +2781,14 @@ certificate	Version	الإصدار
 	pure black stays 100% K or gray 0 instead of a mix	يبقى الأسود الخالص 100% K أو رمادي 0 بدلًا من مزيج
 	re-encoded in the target space; JPEGs stay JPEG	يُعاد ترميزها في الفضاء الهدف؛ تبقى صور JPEG بصيغة JPEG
 	their appearances as well as the page	مظاهرها إلى جانب الصفحة
+	Create & Edit	الإنشاء والتحرير
+	Review & Compare	المراجعة والمقارنة
+	Forms & Signatures	النماذج والتوقيعات
+	Protect & Standardize	الحماية والتوحيد القياسي
+	Customize & Automate	التخصيص والأتمتة
+	No tools match your search.	لا توجد أدوات تطابق بحثك.
+	Expand all tools	توسيع كل الأدوات
+	Collapse all tools	طي كل الأدوات
 	Attach a file…	إرفاق ملف…
 	Delete attachment	حذف المرفق
 	Attaching files is not available on the web yet	إرفاق الملفات غير متاح على الويب بعد
@@ -2822,3 +2830,4 @@ certificate	Version	الإصدار
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	اليوم
+@plural	{n} reply|{n} replies	{n} رد|{n} رد|{n} ردّان|{n} ردود|{n} ردًا|{n} رد

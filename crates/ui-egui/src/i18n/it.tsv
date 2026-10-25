@@ -2716,6 +2716,14 @@ certificate	SHA-256 digest	Impronta SHA-256
 	pure black stays 100% K or gray 0 instead of a mix	il nero puro resta al 100% K o grigio 0 invece di una miscela
 	re-encoded in the target space; JPEGs stay JPEG	ricodificate nello spazio di destinazione; i JPEG restano JPEG
 	their appearances as well as the page	i loro aspetti oltre alla pagina
+	Create & Edit	Crea e modifica
+	Review & Compare	Revisione e confronto
+	Forms & Signatures	Moduli e firme
+	Protect & Standardize	Proteggi e standardizza
+	Customize & Automate	Personalizza e automatizza
+	No tools match your search.	Nessuno strumento corrisponde alla ricerca.
+	Expand all tools	Espandi tutti gli strumenti
+	Collapse all tools	Comprimi tutti gli strumenti
 	Attach a file…	Allega un file…
 	Delete attachment	Elimina allegato
 	Attaching files is not available on the web yet	Allegare file non è ancora disponibile sul web
@@ -2778,3 +2786,4 @@ certificate	SHA-256 digest	Impronta SHA-256
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Oggi
+@plural	{n} reply|{n} replies	{n} risposta|{n} risposte

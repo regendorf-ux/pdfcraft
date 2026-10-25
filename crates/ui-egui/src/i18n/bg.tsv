@@ -2467,6 +2467,14 @@ animation effects	Off	Изключени
 	pure black stays 100% K or gray 0 instead of a mix	чистото черно остава 100% K или сиво 0 вместо смес
 	re-encoded in the target space; JPEGs stay JPEG	прекодирани в целевото пространство; JPEG остават JPEG
 	their appearances as well as the page	техният вид, както и страницата
+	Create & Edit	Създаване и редактиране
+	Review & Compare	Преглед и сравнение
+	Forms & Signatures	Формуляри и подписи
+	Protect & Standardize	Защита и стандартизация
+	Customize & Automate	Персонализиране и автоматизация
+	No tools match your search.	Няма инструменти, отговарящи на търсенето.
+	Expand all tools	Разгъване на всички инструменти
+	Collapse all tools	Свиване на всички инструменти
 	Attach a file…	Прикачване на файл…
 	Delete attachment	Изтриване на прикачения файл
 	Attaching files is not available on the web yet	Прикачването на файлове още не е налично в уеб версията
@@ -2509,3 +2517,4 @@ animation effects	Off	Изключени
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Днес
+@plural	{n} reply|{n} replies	{n} отговор|{n} отговора

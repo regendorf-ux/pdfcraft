@@ -2578,6 +2578,14 @@ animation effects	Off	Vypnuto
 	pure black stays 100% K or gray 0 instead of a mix	čistá černá zůstane 100 % K nebo šedá 0 místo směsi
 	re-encoded in the target space; JPEGs stay JPEG	překódované do cílového prostoru; JPEG zůstanou JPEG
 	their appearances as well as the page	jejich vzhled i stránka
+	Create & Edit	Vytváření a úpravy
+	Review & Compare	Revize a porovnání
+	Forms & Signatures	Formuláře a podpisy
+	Protect & Standardize	Ochrana a standardizace
+	Customize & Automate	Přizpůsobení a automatizace
+	No tools match your search.	Hledání neodpovídá žádný nástroj.
+	Expand all tools	Rozbalit všechny nástroje
+	Collapse all tools	Sbalit všechny nástroje
 	Attach a file…	Připojit soubor…
 	Delete attachment	Odstranit přílohu
 	Attaching files is not available on the web yet	Připojování souborů zatím na webu není k dispozici
@@ -2853,3 +2861,4 @@ certificate	Version	Verze
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Dnes
+@plural	{n} reply|{n} replies	{n} odpověď|{n} odpovědi|{n} odpovědí
