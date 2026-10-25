@@ -2654,6 +2654,14 @@ certificate	SHA-256 digest	Resum SHA-256
 	Optimizing… merging image fragments	S'està optimitzant… fusionant fragments d'imatge
 	Outline colour:	Color del contorn:
 	Page properties	Propietats de la pàgina
+	Create & Edit	Crea i edita
+	Review & Compare	Revisa i compara
+	Forms & Signatures	Formularis i signatures
+	Protect & Standardize	Protegeix i estandarditza
+	Customize & Automate	Personalitza i automatitza
+	No tools match your search.	Cap eina coincideix amb la cerca.
+	Expand all tools	Desplega totes les eines
+	Collapse all tools	Replega totes les eines
 	Pages counted	Pàgines comptades
 	Pages selected	Pàgines seleccionades
 	Print as image	Imprimeix com a imatge
@@ -2794,3 +2802,4 @@ theme	Appearance	Aspecte
 	Delete attachment	Elimina l'adjunt
 	Delete attachment {key}	Elimina l'adjunt {key}
 	From Finder: select files, then right-click ▸ Quick Actions ▸ Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions ▸ Customize.	Des del Finder: selecciona els fitxers, fes clic amb el botó dret > Accions ràpides > Combine files in PdfCraft. No hi surt? Activa-ho una vegada a Accions ràpides > Personalitza.
+@plural	{n} reply|{n} replies	{n} resposta|{n} respostes

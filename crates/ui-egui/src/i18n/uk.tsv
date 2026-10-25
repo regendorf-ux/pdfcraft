@@ -2513,6 +2513,14 @@ animation effects	Off	Вимкнено
 	Page properties	Властивості сторінки
 # Combine files from Finder (macOS).
 	From Finder: select files, then right-click > Quick Actions > Combine files in PdfCraft. Not listed? Turn it on once under Quick Actions > Customize.	У Finder: виберіть файли, потім правий клік > Швидкі дії > “Combine files in PdfCraft”. Немає в списку? Увімкніть один раз у Швидкі дії > Налаштувати.
+	Create & Edit	Створення й редагування
+	Review & Compare	Рецензування й порівняння
+	Forms & Signatures	Форми й підписи
+	Protect & Standardize	Захист і стандартизація
+	Customize & Automate	Налаштування й автоматизація
+	No tools match your search.	Немає інструментів, що відповідають пошуку.
+	Expand all tools	Розгорнути всі інструменти
+	Collapse all tools	Згорнути всі інструменти
 	Attach a file…	Прикріпити файл…
 	Delete attachment	Видалити вкладення
 	Attaching files is not available on the web yet	Прикріплення файлів у веб-версії поки недоступне
@@ -2555,3 +2563,4 @@ animation effects	Off	Вимкнено
 
 # Date picker: Today button (#4274) (AI-assisted, not separately native-reviewed)
 	Today	Сьогодні
+@plural	{n} reply|{n} replies	{n} відповідь|{n} відповіді|{n} відповідей
