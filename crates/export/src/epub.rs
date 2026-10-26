@@ -177,7 +177,7 @@ pub fn epub(pages: &[Page], meta: &Meta, toc: &[TocEntry], tags: &Tags) -> Vec<u
             }
             Item::Para(b, guessed) => {
                 let lvl = if tagged {
-                    let text = folded(&b.text);
+                    let text = folded(&b.iter().map(|r| r.text.as_str()).collect::<String>());
                     tags.headings.iter().find(|h| h.0 == page && folded(&h.2) == text).map_or(0, |h| h.1.clamp(1, 6))
                 } else {
                     guessed
@@ -198,20 +198,39 @@ pub fn epub(pages: &[Page], meta: &Meta, toc: &[TocEntry], tags: &Tags) -> Vec<u
                         }
                     }
                 }
-                let mut text = esc(b.text.trim());
+                let plain: String = b.iter().map(|r| r.text.as_str()).collect();
+                let text = if lvl == 0 {
+                    // Each run keeps its own bold and italic.
+                    let last = b.len().saturating_sub(1);
+                    let mut t = String::new();
+                    for (i, r) in b.iter().enumerate() {
+                        let mut s = r.text.as_str();
+                        if i == 0 {
+                            s = s.trim_start();
+                        }
+                        if i == last {
+                            s = s.trim_end();
+                        }
+                        let mut run = esc(s);
+                        if r.block.bold {
+                            run = format!("<strong>{run}</strong>");
+                        }
+                        if r.block.italic {
+                            run = format!("<em>{run}</em>");
+                        }
+                        t.push_str(&run);
+                    }
+                    t
+                } else {
+                    esc(plain.trim())
+                };
                 if lvl == 0 {
-                    if b.bold {
-                        text = format!("<strong>{text}</strong>");
-                    }
-                    if b.italic {
-                        text = format!("<em>{text}</em>");
-                    }
                     current.push_str(&format!("<p>{text}</p>\n"));
                 } else {
                     let id = format!("h-{}", headings.len() + 1);
                     current.push_str(&format!("<h{lvl} id=\"{id}\">{text}</h{lvl}>\n"));
                     heading_chapter.push(chapters.len());
-                    headings.push(TocEntry { title: b.text.trim().to_string(), level: lvl, page });
+                    headings.push(TocEntry { title: plain.trim().to_string(), level: lvl, page });
                 }
             }
             Item::Table(t) => current.push_str(&table_html(&t)),
@@ -521,7 +540,7 @@ mod tests {
     }
 
     pub(super) fn block(text: &str, size: f64, top: f64) -> Block {
-        Block { text: text.into(), rect: [72.0, top - size, 400.0, top], size, bold: false, italic: false, color: [0.0; 3], rotation: 0.0 }
+        Block { text: text.into(), rect: [72.0, top - size, 400.0, top], size, bold: false, italic: false, color: [0.0; 3], rotation: 0.0, space_around: [false; 2] }
     }
 
     pub(super) fn page(blocks: Vec<Block>) -> Page {
