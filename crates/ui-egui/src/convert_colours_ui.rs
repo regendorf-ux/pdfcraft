@@ -77,12 +77,13 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
             _ => (1, count.max(1)),
         };
         let on = matches!(d.range, Range::Pages(..));
-        if ui.add(widgets::radio(on, tl!("From"))).clicked() {
+        let from = ui.add(widgets::radio(on, tl!("From")));
+        if from.clicked() {
             d.range = Range::Pages(a, b);
         }
-        let ra = ui.add(egui::DragValue::new(&mut a).range(1..=count.max(1)));
-        ui.label(tl!("to"));
-        let rb = ui.add(egui::DragValue::new(&mut b).range(1..=count.max(1)));
+        let ra = ui.add(egui::DragValue::new(&mut a).range(1..=count.max(1))).labelled_by(from.id);
+        let to = ui.label(tl!("to"));
+        let rb = ui.add(egui::DragValue::new(&mut b).range(1..=count.max(1))).labelled_by(to.id);
         if ra.changed() || rb.changed() {
             d.range = Range::Pages(a.min(b), b.max(a));
         }
