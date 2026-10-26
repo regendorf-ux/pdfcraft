@@ -233,13 +233,16 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
             d.own_id = files[0].0.clone();
         }
         ui.horizontal(|ui| {
-            ui.label(tl!("Add your digital ID"));
-            egui::ComboBox::from_id_salt("cert-own-id").width(200.0).selected_text(id_label(&files, &d.own_id)).show_ui(ui, |ui| {
+            let label = ui.label(tl!("Add your digital ID"));
+            let combo = egui::ComboBox::from_id_salt("cert-own-id").width(200.0).selected_text(id_label(&files, &d.own_id)).show_ui(ui, |ui| {
                 for (p, n) in &files {
                     ui.selectable_value(&mut d.own_id, p.clone(), n);
                 }
             });
-            let r = ui.add(widgets::line(&mut d.own_password).password(true).hint_text(tl!("Password")).desired_width(150.0));
+            combo.response.labelled_by(label.id);
+            let r = ui
+                .add(widgets::line(&mut d.own_password).password(true).hint_text(tl!("Password")).desired_width(150.0))
+                .accessible_name(tl!("Password"));
             if ui.button(tl!("Add")).clicked() || (r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))) {
                 add_own = true;
             }
@@ -255,17 +258,18 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
         use pdfcraft_engine::Algorithm as A;
         let p = &mut app.certificate_draft.protection;
         egui::Grid::new("cert-permissions").num_columns(2).spacing([12.0, 8.0]).show(ui, |ui| {
-            ui.label(tl!("Compatibility"));
+            let label = ui.label(tl!("Compatibility"));
             let algos = [(A::Aes256, tl!("Acrobat X and later (256-bit AES)")), (A::Aes128, tl!("Acrobat 7.0 and later (128-bit AES)"))];
             if !algos.iter().any(|(a, _)| *a == p.algorithm) {
                 p.algorithm = Algorithm::Aes256;
             }
             let cur = algos.iter().find(|(a, _)| *a == p.algorithm).map_or(algos[0].1, |(_, l)| *l);
-            egui::ComboBox::from_id_salt("cert-algo").width(300.0).selected_text(cur).show_ui(ui, |ui| {
+            let combo = egui::ComboBox::from_id_salt("cert-algo").width(300.0).selected_text(cur).show_ui(ui, |ui| {
                 for (a, l) in algos {
                     ui.selectable_value(&mut p.algorithm, a, l);
                 }
             });
+            combo.response.labelled_by(label.id);
             ui.end_row();
             ui.label(tl!("Encrypt"));
             ui.vertical(|ui| {
@@ -273,16 +277,17 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
                 widgets::radio_value(ui, &mut p.encrypt_metadata, false, tl!("All document contents except metadata"));
             });
             ui.end_row();
-            ui.label(tl!("Printing allowed"));
+            let label = ui.label(tl!("Printing allowed"));
             let opts = [(Printing::None, tl!("None")), (Printing::Low, tl!("Low Resolution (150 dpi)")), (Printing::High, tl!("High Resolution"))];
             let cur = opts.iter().find(|(o, _)| *o == p.printing).map_or(tl!("High Resolution"), |(_, l)| *l);
-            egui::ComboBox::from_id_salt("cert-print").width(300.0).selected_text(cur).show_ui(ui, |ui| {
+            let combo = egui::ComboBox::from_id_salt("cert-print").width(300.0).selected_text(cur).show_ui(ui, |ui| {
                 for (o, l) in opts {
                     ui.selectable_value(&mut p.printing, o, l);
                 }
             });
+            combo.response.labelled_by(label.id);
             ui.end_row();
-            ui.label(tl!("Changes allowed"));
+            let label = ui.label(tl!("Changes allowed"));
             let opts = [
                 (Changes::None, tl!("None")),
                 (Changes::Pages, tl!("Inserting, deleting, and rotating pages")),
@@ -291,11 +296,12 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
                 (Changes::AnyExceptExtract, tl!("Any except extracting pages")),
             ];
             let cur = opts.iter().find(|(o, _)| *o == p.changes).map_or(tl!("None"), |(_, l)| *l);
-            egui::ComboBox::from_id_salt("cert-changes").width(300.0).selected_text(cur).show_ui(ui, |ui| {
+            let combo = egui::ComboBox::from_id_salt("cert-changes").width(300.0).selected_text(cur).show_ui(ui, |ui| {
                 for (o, l) in opts {
                     ui.selectable_value(&mut p.changes, o, l);
                 }
             });
+            combo.response.labelled_by(label.id);
             ui.end_row();
             ui.label("");
             ui.vertical(|ui| {
@@ -397,18 +403,26 @@ pub(crate) fn open_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
         ui.add_space(8.0);
         ui.horizontal(|ui| {
             let shown = if chosen.is_empty() { tl!("Choose a digital ID file").to_string() } else { id_label(&files, chosen) };
-            egui::ComboBox::from_id_salt("certificate-password-id").width(300.0).selected_text(shown).show_ui(ui, |ui| {
-                for (p, n) in &files {
-                    ui.selectable_value(chosen, p.clone(), n);
-                }
-            });
+            // The accessible name stays the field's, not the selected file's.
+            egui::ComboBox::from_id_salt("certificate-password-id")
+                .width(300.0)
+                .selected_text(shown)
+                .show_ui(ui, |ui| {
+                    for (p, n) in &files {
+                        ui.selectable_value(chosen, p.clone(), n);
+                    }
+                })
+                .response
+                .accessible_name(tl!("Digital ID"));
             #[cfg(not(target_arch = "wasm32"))]
             if ui.button(tl!("Browse…")).clicked() {
                 browse = true;
             }
         });
         ui.add_space(6.0);
-        let r = ui.add(widgets::line(&mut prompt.input).password(true).hint_text(tl!("Password")).desired_width(f32::INFINITY));
+        let r = ui
+            .add(widgets::line(&mut prompt.input).password(true).hint_text(tl!("Password")).desired_width(f32::INFINITY))
+            .accessible_name(tl!("Password"));
         if (r.has_focus() || r.lost_focus()) && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
             answer = Some(Answer::Submit);
         }
