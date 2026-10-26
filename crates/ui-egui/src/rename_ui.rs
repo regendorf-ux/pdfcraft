@@ -126,7 +126,8 @@ pub(crate) fn body(app: &mut PdfCraftApp, ui: &mut egui::Ui) -> (bool, bool) {
         state.cursor.set_char_range(Some(egui::text::CCursorRange::two(egui::text::CCursor::new(0), end)));
         state.store(ui.ctx(), id);
     }
-    let field = ui.add(egui::TextEdit::singleline(&mut draft.name).id(id).desired_width(f32::INFINITY).hint_text(tl!("File name"))).labelled_by(heading.id);
+    let field =
+        ui.add(egui::TextEdit::singleline(&mut draft.name).id(id).desired_width(f32::INFINITY).hint_text(tl!("File name"))).labelled_by(heading.id);
     if std::mem::take(&mut draft.fresh) {
         field.request_focus();
     }
