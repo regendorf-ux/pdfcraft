@@ -113,8 +113,8 @@ impl Panes {
     /// the plain id.
     pub(crate) fn area_id(&self, name: &'static str) -> egui::Id {
         match self.drawing {
-            Place::Main => egui::Id::new(name),
-            place => egui::Id::new((name, place)),
+            Place::Main => egui::Id::unique(name),
+            place => egui::Id::unique((name, place)),
         }
     }
 }
@@ -515,7 +515,7 @@ pub(crate) fn page_area(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     app.panes.drawing = Place::Main;
     if let Some(hint) = app.panes.drop_hint.take() {
         let t = Tokens::get(ui.ctx());
-        let painter = ui.ctx().layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new("pane-drop-hint")));
+        let painter = ui.ctx().layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::unique("pane-drop-hint")));
         painter.rect(hint.shrink(4.0), 6.0, t.accent.gamma_multiply(0.12), Stroke::new(2.0, t.accent), egui::StrokeKind::Inside);
     }
     let main = app.pane_front(Place::Main);
@@ -547,10 +547,10 @@ fn pressed_in(ui: &egui::Ui, rect: Rect, place: Place, view: Option<&crate::DocV
     match ui.ctx().layer_id_at(pos) {
         None => true,
         Some(layer) => {
-            let quick = if place == Place::Main { egui::Id::new("quick-bar") } else { egui::Id::new(("quick-bar", place)) };
+            let quick = if place == Place::Main { egui::Id::unique("quick-bar") } else { egui::Id::unique(("quick-bar", place)) };
             layer == ui.layer_id()
-                || [quick, egui::Id::new("camera-bar")].contains(&layer.id)
-                || view.is_some_and(|v| egui::Id::new(("find-bar", v.view_key())) == layer.id)
+                || [quick, egui::Id::unique("camera-bar")].contains(&layer.id)
+                || view.is_some_and(|v| egui::Id::unique(("find-bar", v.view_key())) == layer.id)
         }
     }
 }
@@ -571,7 +571,7 @@ fn split_area(app: &mut PdfCraftApp, split: Split, main: Option<usize>, second: 
     }
     // The divider, dragged to share the area differently.
     let grab = if split.down { divider.expand2(vec2(0.0, 3.0)) } else { divider.expand2(vec2(3.0, 0.0)) };
-    let response = ui.interact(grab, ui.id().with("pane-divider"), Sense::drag());
+    let response = ui.interact(grab, ui.scope_id().with("pane-divider"), Sense::drag());
     if response.hovered() || response.dragged() {
         ui.ctx().set_cursor_icon(if split.down { egui::CursorIcon::ResizeVertical } else { egui::CursorIcon::ResizeHorizontal });
     }
@@ -618,7 +618,7 @@ fn pane(app: &mut PdfCraftApp, ui: &mut egui::Ui, rect: Rect, place: Place, fron
     // The active pane is marked along its top edge.
     if active {
         let edge = Rect::from_min_size(rect.min, vec2(rect.width(), 2.0));
-        ui.ctx().layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new(("active-pane", salt)))).rect_filled(edge, 0.0, t.accent);
+        ui.ctx().layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::unique(("active-pane", salt)))).rect_filled(edge, 0.0, t.accent);
     }
 }
 
