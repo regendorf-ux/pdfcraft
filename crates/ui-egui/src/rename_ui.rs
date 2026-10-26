@@ -117,7 +117,7 @@ pub(crate) fn body(app: &mut PdfCraftApp, ui: &mut egui::Ui) -> (bool, bool) {
     let Some((path, current)) = app.session.get(doc_id).and_then(|d| d.path.clone().map(|p| (p, d.name.clone()))) else { return (true, false) };
     let unsaved = app.views.iter().position(|v| v.id == doc_id).is_some_and(|i| app.has_unsaved_work(i));
     let Some(draft) = app.rename_draft.as_mut() else { return (true, false) };
-    ui.label(egui::RichText::new(crate::i18n::fmt(tl!("Rename “{name}”"), &[("name", &current)])).font(theme::semibold(18.0)));
+    let heading = ui.label(egui::RichText::new(crate::i18n::fmt(tl!("Rename “{name}”"), &[("name", &current)])).font(theme::semibold(18.0)));
     ui.add_space(8.0);
     let id = ui.make_persistent_id("rename-file-name");
     if draft.fresh {
@@ -126,7 +126,7 @@ pub(crate) fn body(app: &mut PdfCraftApp, ui: &mut egui::Ui) -> (bool, bool) {
         state.cursor.set_char_range(Some(egui::text::CCursorRange::two(egui::text::CCursor::new(0), end)));
         state.store(ui.ctx(), id);
     }
-    let field = ui.add(egui::TextEdit::singleline(&mut draft.name).id(id).desired_width(f32::INFINITY).hint_text(tl!("File name")));
+    let field = ui.add(egui::TextEdit::singleline(&mut draft.name).id(id).desired_width(f32::INFINITY).hint_text(tl!("File name"))).labelled_by(heading.id);
     if std::mem::take(&mut draft.fresh) {
         field.request_focus();
     }
