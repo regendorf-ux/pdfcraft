@@ -18,7 +18,7 @@ fn convert(name: &str, bytes: &[u8], paper: (f64, f64), now: Option<i64>) -> Res
     let converted = crate::guard(|| pdfcraft_create::from_epub(bytes, paper, title_of(name)))
         .map_err(|_| EditError::Source(format!("{name}: the book could not be read")))?
         .map_err(|e| EditError::Source(format!("{name}: {e}")))?;
-    let bytes = crate::write_checked(&converted.document, now)?;
+    let bytes = crate::session::write_checked(&converted.document, now)?;
     Ok((bytes, converted.notes))
 }
 
