@@ -3886,11 +3886,21 @@ impl Session {
         // laid-out form is one appended revision.
         let opts = SaveOptions { mod_date: context.now.map(pdfcraft_cos::pdf_date), ..SaveOptions::default() };
         // Write `work` as one more revision and reopen it: what the document then is.
+        // A certificate-protected file is reopened with its key, and the renderer is given a
+        // decrypted copy of the result (as at open); the editor keeps the file as it is.
         let rebase = |work: &pdfcraft_cos::Document| -> Result<(Arc<Vec<u8>>, DocInfo, pdfcraft_cos::Document), String> {
             let new_bytes = write_incremental(work, &opts).map(Arc::new).map_err(|e| e.to_string())?;
-            let new_info = inspect(new_bytes.clone(), render_password.as_deref()).map_err(|e| e.to_string())?;
-            let new_cos = pdfcraft_cos::Document::open_with_password(new_bytes.clone(), password).map_err(|e| e.to_string())?;
-            Ok((new_bytes, new_info, new_cos))
+            let new_cos = match certificate {
+                Some(k) => pdfcraft_cos::Document::open_with_credential(
+                    new_bytes,
+                    &pdfcraft_cos::Credential::Certificate { seed: k.seed, permissions: k.permissions },
+                ),
+                None => pdfcraft_cos::Document::open_with_password(new_bytes, password),
+            }
+            .map_err(|e| e.to_string())?;
+            let shown = if certificate.is_some() { plain_copy(&new_cos).map_err(|e| e.to_string())? } else { new_cos.bytes().clone() };
+            let new_info = inspect(shown.clone(), render_password.as_deref()).map_err(|e| e.to_string())?;
+            Ok((shown, new_info, new_cos))
         };
         let (bytes, info, cos, xfa) = match (info.xfa, cos) {
             (Some(pdfcraft_render::Xfa::Dynamic), Ok(Ok(cos))) if pdfcraft_xfa::existing_layout(&cos).is_none() => {
