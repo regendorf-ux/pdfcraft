@@ -223,13 +223,22 @@ impl PrintDraft {
         self.handling == Handling::Multiple && self.order == PageOrder::CutStack
     }
 
+    /// The spooler job for this print: the dialog's copies, two-sided and colour settings, the
+    /// driver options changed from the printer's defaults, and the chosen paper.
     pub fn job(&self, title: &str) -> spool::Job {
         spool::Job {
             printer: self.printer.clone(),
             copies: self.copies.max(1),
             collate: self.collate,
-            // Cut and stack needs single-sided sheets, whatever the printer's default.
-            duplex: if self.cut_and_stack() { Some(spool::Duplex::Off) } else { self.duplex },
+            // Cut and stack needs single-sided sheets, whatever the printer's default; a booklet
+            // decides two-sided itself (#2707), leaving the Two-sided choice as it was.
+            duplex: if self.cut_and_stack() {
+                Some(spool::Duplex::Off)
+            } else if self.handling == Handling::Booklet {
+                Some(print::booklet_duplex(self.booklet_subset))
+            } else {
+                self.duplex
+            },
             scaling: spool::Scaling::Exact,
             grayscale: self.grayscale,
             title: title.to_string(),
@@ -240,7 +249,7 @@ impl PrintDraft {
             }
             .into_iter()
             // The sheet the PDF was laid out on, not the queue's default paper.
-            .chain(print::cups_media(self.paper).map(|m| ("media".to_string(), m.to_string())))
+            .chain(print::media_option(self.paper))
             .collect(),
         }
     }
@@ -291,7 +300,7 @@ pub(crate) struct PrintTasks {
 fn listed_printers() -> Vec<spool::Printer> {
     #[cfg(target_arch = "wasm32")]
     {
-        vec![spool::Printer { name: crate::web_print::BROWSER_PRINTER.to_string(), default: true, two_sided: None }]
+        vec![spool::Printer { name: crate::web_print::BROWSER_PRINTER.to_string(), default: true, two_sided: None, description: String::new() }]
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -885,15 +894,20 @@ fn driver_options_panel(ui: &mut egui::Ui, d: &mut PrintDraft, t: &Tokens) {
                 }
                 egui::Grid::new(("driver-group", n)).num_columns(2).spacing([10.0, 4.0]).show(ui, |ui| {
                     for o in chunk {
-                        ui.label(&o.label);
                         let current = choices.get(&o.key).cloned().unwrap_or_else(|| o.default.clone());
                         let label_of = |c: &str| o.choices.iter().find(|(k, _)| k == c).map_or_else(|| c.to_string(), |(_, l)| l.clone());
                         let mut pick = current.clone();
-                        egui::ComboBox::from_id_salt(("driver-option", &o.key)).selected_text(label_of(&current)).width(200.0).show_ui(ui, |ui| {
-                            for (k, l) in &o.choices {
-                                ui.selectable_value(&mut pick, k.clone(), l.as_str());
-                            }
-                        });
+                        let option_label = ui.label(&o.label);
+                        egui::ComboBox::from_id_salt(("driver-option", &o.key))
+                            .selected_text(label_of(&current))
+                            .width(200.0)
+                            .show_ui(ui, |ui| {
+                                for (k, l) in &o.choices {
+                                    ui.selectable_value(&mut pick, k.clone(), l.as_str());
+                                }
+                            })
+                            .response
+                            .labelled_by(option_label.id);
                         if pick != current {
                             if pick == o.default {
                                 choices.remove(&o.key);
@@ -909,13 +923,19 @@ fn driver_options_panel(ui: &mut egui::Ui, d: &mut PrintDraft, t: &Tokens) {
     });
 }
 
-fn combo<T: PartialEq + Copy>(ui: &mut egui::Ui, id: &str, value: &mut T, choices: &[(T, &str)], width: f32) {
+/// Draw a combo box whose accessible name does not depend on the selected value.
+fn combo<T: PartialEq + Copy>(ui: &mut egui::Ui, id: &str, name: &str, value: &mut T, choices: &[(T, &str)], width: f32) {
     let shown = choices.iter().find(|c| c.0 == *value).map_or("", |c| c.1);
-    egui::ComboBox::from_id_salt(id).selected_text(shown).width(width).show_ui(ui, |ui| {
-        for (v, label) in choices {
-            ui.selectable_value(value, *v, *label);
-        }
-    });
+    egui::ComboBox::from_id_salt(id)
+        .selected_text(shown)
+        .width(width)
+        .show_ui(ui, |ui| {
+            for (v, label) in choices {
+                ui.selectable_value(value, *v, *label);
+            }
+        })
+        .response
+        .accessible_name(name);
 }
 
 /// Draw the dialog. `thumb` gives a page's thumbnail texture when there is one. Returns
@@ -939,7 +959,7 @@ pub(crate) fn body(
         ui.vertical(|ui| {
             ui.set_width(470.0);
             egui::Grid::new("print-top").num_columns(2).spacing([10.0, 8.0]).show(ui, |ui| {
-                ui.label(tl!("Printer:"));
+                let printer_caption = ui.label(tl!("Printer:"));
                 let before = d.printer.clone();
                 // The browser's print dialog sets copies, two-sided printing and colour itself.
                 let browser = d.printer.as_deref() == Some(crate::web_print::BROWSER_PRINTER);
@@ -967,7 +987,9 @@ pub(crate) fn body(
                         if ui.selectable_value(&mut d.printer, None, tl!("Save as PDF")).clicked() {
                             d.printer_picked = true;
                         }
-                    });
+                    })
+                    .response
+                    .labelled_by(printer_caption.id);
                     let tip = if spool::HAS_PRINTER_PREFERENCES {
                         tl!("Opens the printer driver's preferences. They are saved for every print from this computer; the copies, two-sided, grayscale and paper chosen here still apply.")
                     } else {
@@ -1008,39 +1030,46 @@ pub(crate) fn body(
                     );
                     ui.end_row();
                 }
-                ui.label(tl!("Copies:"));
+                let copies_label = ui.label(tl!("Copies:"));
                 ui.add_enabled_ui(!browser, |ui| {
                     ui.horizontal(|ui| {
-                        ui.add(egui::DragValue::new(&mut d.copies).range(1..=999));
+                        ui.add(egui::DragValue::new(&mut d.copies).range(1..=999)).labelled_by(copies_label.id);
                         ui.add(widgets::checkbox(&mut d.collate, tl!("Collate")));
                         ui.add(widgets::checkbox(&mut d.grayscale, tl!("Print in grayscale")));
                     });
                 });
                 ui.end_row();
-                ui.label(tl!("Two-sided:"));
-                ui.add_enabled_ui(!browser, |ui| {
-                    combo(
-                        ui,
-                        "duplex",
-                        &mut d.duplex,
-                        &[
-                            (None, tl!("Printer default")),
-                            (Some(spool::Duplex::Off), tl!("Off")),
-                            (Some(spool::Duplex::LongEdge), tl!("Flip on long edge")),
-                            (Some(spool::Duplex::ShortEdge), tl!("Flip on short edge")),
-                        ],
-                        160.0,
-                    );
-                });
-                ui.end_row();
-                ui.label(tl!("Paper:"));
+                // A booklet decides two-sided itself (#2707), so the choice is hidden meanwhile, as
+                // in Acrobat's Print dialog; it is kept for the other layouts.
+                if d.handling != Handling::Booklet {
+                    ui.label(tl!("Two-sided:"));
+                    ui.add_enabled_ui(!browser, |ui| {
+                        combo(
+                            ui,
+                            "duplex",
+                            tl!("Two-sided:"),
+                            &mut d.duplex,
+                            &[
+                                (None, tl!("Printer default")),
+                                (Some(spool::Duplex::Off), tl!("Off")),
+                                (Some(spool::Duplex::LongEdge), tl!("Flip on long edge")),
+                                (Some(spool::Duplex::ShortEdge), tl!("Flip on short edge")),
+                            ],
+                            160.0,
+                        );
+                    });
+                    ui.end_row();
+                }
+                let paper_label = ui.label(tl!("Paper:"));
                 let paper_name = PAPERS.get(d.paper).map_or("US Letter", |p| p.0);
                 let before = d.paper;
                 egui::ComboBox::from_id_salt("paper").selected_text(tl!(paper_name)).width(260.0).show_ui(ui, |ui| {
                     for (i, (name, _)) in PAPERS.iter().enumerate() {
                         ui.selectable_value(&mut d.paper, i, tl!(name));
                     }
-                });
+                })
+                .response
+                .labelled_by(paper_label.id);
                 // Label stock gets the label layout (cut, turned upright, fitted).
                 if d.paper != before && d.paper == print::LABEL_PAPER {
                     d.paper_before_label = Some(before);
@@ -1091,11 +1120,11 @@ pub(crate) fn body(
             ui.horizontal(|ui| {
                 widgets::radio_value(ui, &mut d.which, Which::All, tl!("All"));
                 widgets::radio_value(ui, &mut d.which, Which::Current, tl!("Current page"));
-                widgets::radio_value(ui, &mut d.which, Which::Range, tl!("Pages"));
+                let pages = widgets::radio_value(ui, &mut d.which, Which::Range, tl!("Pages"));
                 let r = ui.add_enabled(
                     d.which == Which::Range,
                     crate::widgets::line(&mut d.range).hint_text(format!("1-{}", sizes.len())).desired_width(110.0),
-                );
+                ).labelled_by(pages.id);
                 if r.gained_focus() {
                     d.which = Which::Range;
                 }
@@ -1110,6 +1139,7 @@ pub(crate) fn body(
                 combo(
                     ui,
                     "subset",
+                    tl!("More options:"),
                     &mut d.subset,
                     &[(Subset::All, tl!("All pages in range")), (Subset::Odd, tl!("Odd pages only")), (Subset::Even, tl!("Even pages only"))],
                     150.0,
@@ -1144,7 +1174,8 @@ pub(crate) fn body(
                         if ui.add(widgets::radio(custom, tl!("Custom scale:"))).clicked() {
                             d.size = SizeMode::Custom(d.custom_scale);
                         }
-                        ui.add_enabled(custom, egui::DragValue::new(&mut d.custom_scale).range(1.0..=1000.0).suffix(" %"));
+                        ui.add_enabled(custom, egui::DragValue::new(&mut d.custom_scale).range(1.0..=1000.0).suffix(" %"))
+                            .accessible_name(tl!("Custom scale"));
                     });
                 }
                 Handling::Label => {
@@ -1157,21 +1188,22 @@ pub(crate) fn body(
                 }
                 Handling::Poster => {
                     ui.horizontal(|ui| {
-                        ui.label(tl!("Tile scale:"));
-                        ui.add(egui::DragValue::new(&mut d.poster_scale).range(10.0..=1000.0).suffix(" %"));
-                        ui.label(tl!("Overlap:"));
-                        ui.add(egui::DragValue::new(&mut d.overlap).range(0.0..=144.0).suffix(" pt"));
+                        let scale_label = ui.label(tl!("Tile scale:"));
+                        ui.add(egui::DragValue::new(&mut d.poster_scale).range(10.0..=1000.0).suffix(" %")).labelled_by(scale_label.id);
+                        let overlap_label = ui.label(tl!("Overlap:"));
+                        ui.add(egui::DragValue::new(&mut d.overlap).range(0.0..=144.0).suffix(" pt")).labelled_by(overlap_label.id);
                         ui.add(widgets::checkbox(&mut d.cut_marks, tl!("Cut marks")));
                     });
                 }
                 Handling::Multiple => {
                     ui.horizontal(|ui| {
                         ui.label(tl!("Pages per sheet:"));
-                        combo(ui, "per-sheet", &mut d.per_sheet, &[(2, "2"), (4, "4"), (6, "6"), (9, "9"), (16, "16")], 60.0);
+                        combo(ui, "per-sheet", tl!("Pages per sheet:"), &mut d.per_sheet, &[(2, "2"), (4, "4"), (6, "6"), (9, "9"), (16, "16")], 60.0);
                         ui.label(tl!("Page order:"));
                         combo(
                             ui,
                             "order",
+                            tl!("Page order:"),
                             &mut d.order,
                             &[
                                 (PageOrder::Horizontal, tl!("Horizontal")),
@@ -1199,6 +1231,7 @@ pub(crate) fn body(
                         combo(
                             ui,
                             "booklet",
+                            tl!("Booklet subset:"),
                             &mut d.booklet_subset,
                             &[
                                 (BookletSubset::BothSides, tl!("Both sides")),
@@ -1208,7 +1241,7 @@ pub(crate) fn body(
                             130.0,
                         );
                         ui.label(tl!("Binding:"));
-                        combo(ui, "binding", &mut d.binding, &[(Binding::Left, tl!("Left")), (Binding::Right, tl!("Right"))], 80.0);
+                        combo(ui, "binding", tl!("Binding:"), &mut d.binding, &[(Binding::Left, tl!("Left")), (Binding::Right, tl!("Right"))], 80.0);
                     });
                 }
             }
@@ -1224,6 +1257,7 @@ pub(crate) fn body(
             combo(
                 ui,
                 "content",
+                tl!("Comments & Forms"),
                 &mut d.content,
                 &[
                     (Content::Document, tl!("Document")),
@@ -1244,7 +1278,7 @@ pub(crate) fn body(
                         ui.add_enabled_ui(d.as_image, |ui| {
                             ui.label(tl!("Resolution:"));
                             let mut dpi = d.dpi.round() as u32;
-                            combo(ui, "print-dpi", &mut dpi, &[(150, "150 dpi"), (300, "300 dpi"), (600, "600 dpi")], 100.0);
+                            combo(ui, "print-dpi", tl!("Resolution:"), &mut dpi, &[(150, "150 dpi"), (300, "300 dpi"), (600, "600 dpi")], 100.0);
                             d.dpi = f64::from(dpi);
                         });
                     });

@@ -8,6 +8,7 @@ mod event {
 }
 
 mod linux_service_menu;
+mod vendor_graph;
 mod winit_macos_emoji_picker;
 mod winit_macos_ime_commit;
 mod winit_macos_ime_discard;
