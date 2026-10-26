@@ -34,7 +34,7 @@ fn a_late_list_keeps_the_paper_picked_meanwhile() {
     let wait = gate.clone();
     h.state_mut().printer_source = Some(Arc::new(move || {
         let _open = wait.lock();
-        vec![Printer { name: "Office".into(), default: true, two_sided: None }]
+        vec![Printer { name: "Office".into(), default: true, two_sided: None, description: String::new() }]
     }));
     assert!(h.state_mut().execute("print.dialog"));
     wait_for_list(&mut h);
