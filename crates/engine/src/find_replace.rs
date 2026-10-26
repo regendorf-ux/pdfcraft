@@ -16,7 +16,8 @@
 use std::collections::BTreeMap;
 use std::ops::Range;
 
-use crate::{Document, Edit, EditError, check_permission, guard};
+use crate::edit::check_permission;
+use crate::{Document, Edit, EditError, guard};
 
 /// What to look for and what to put in its place, with the find bar's options.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
