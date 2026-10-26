@@ -17,7 +17,47 @@ pub(crate) struct RenameDraft {
     pub fresh: bool,
 }
 
+/// Where a "Save and Rename" hands the typed name back when its save does not go through.
+pub(crate) type Returned = std::sync::Arc<std::sync::Mutex<Option<RenameDraft>>>;
+
+/// Held by the step that follows the save. If that step is dropped without running (the save
+/// failed, the Save As picker was cancelled, the overwrite question was declined), the name goes
+/// back to the app so the dialog can open again with it.
+struct Pending {
+    draft: Option<RenameDraft>,
+    back: Returned,
+}
+
+impl Pending {
+    /// The save went through: the rename takes the name.
+    fn take(&mut self) -> Option<RenameDraft> {
+        self.draft.take()
+    }
+}
+
+impl Drop for Pending {
+    fn drop(&mut self) {
+        if let Some(mut draft) = self.draft.take() {
+            draft.fresh = false;
+            *self.back.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(draft);
+        }
+    }
+}
+
 impl PdfCraftApp {
+    /// Opens Rename again with the name that was typed, once a save that was to precede the
+    /// rename has come to nothing. Called every frame.
+    pub(crate) fn reopen_returned_rename(&mut self) {
+        if self.dialog.is_some() {
+            return;
+        }
+        let Some(draft) = self.rename_returned.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take() else { return };
+        if self.views.iter().any(|v| v.id == draft.id) {
+            self.rename_draft = Some(draft);
+            self.dialog = Some(Dialog::RenameFile);
+        }
+    }
+
     /// Rename… for document `id` (tab menu, double-click on the tab): the dialog opens with the
     /// name selected, without its extension. Nothing happens for a document that has no file.
     pub(crate) fn start_rename(&mut self, id: DocId) {
@@ -33,8 +73,12 @@ impl PdfCraftApp {
         let Some(index) = self.views.iter().position(|v| v.id == draft.id) else { return };
         if self.has_unsaved_work(index) {
             // Saved in place first; the rename follows only if the save went through.
-            let (id, name) = (draft.id, draft.name);
-            self.save_then(index, crate::editing::SaveTarget::InPlace, move |app| app.rename_now(id, &name));
+            let mut pending = Pending { draft: Some(draft), back: self.rename_returned.clone() };
+            self.save_then(index, crate::editing::SaveTarget::InPlace, move |app| {
+                if let Some(draft) = pending.take() {
+                    app.rename_now(draft.id, &draft.name);
+                }
+            });
         } else {
             self.rename_now(draft.id, &draft.name);
         }
@@ -205,11 +249,35 @@ mod tests {
         h.get_by_label("This document has unsaved changes. They are saved first, then the file is renamed.");
         h.get_by_label("Save and Rename").click();
         h.run_steps(6);
+        assert!(h.state().rename_draft.is_none() && h.state().dialog.is_none());
         let doc = h.state().session.get(id).unwrap();
         assert!(!doc.dirty, "saved");
         assert_eq!(doc.name, "second.pdf");
         let saved = std::fs::read(dir.join("second.pdf")).unwrap();
         assert!(String::from_utf8_lossy(&saved).contains("Saved first"), "the renamed file is the saved version");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_save_that_fails_keeps_the_typed_name() {
+        let dir = std::env::temp_dir().join(format!("pdfcraft-rename-ui-fail-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut h = harness(&dir);
+        let id = h.state().views[0].id;
+        h.state_mut().apply_edit(pdfcraft_engine::Edit::SetInfo { key: "Title".into(), value: "Unsaved".into() });
+        h.run_steps(3);
+        open_rename(&mut h, "first.pdf (edited)");
+        type_name(&mut h, "second");
+        // The save cannot be written: the file's place is now a folder.
+        std::fs::remove_file(dir.join("first.pdf")).unwrap();
+        std::fs::create_dir(dir.join("first.pdf")).unwrap();
+        h.get_by_label("Save and Rename").click();
+        h.run_steps(6);
+        assert!(matches!(h.state().dialog, Some(crate::Dialog::RenameFile)), "the dialog is back");
+        assert_eq!(h.state().rename_draft.as_ref().unwrap().name, "second", "with the name that was typed");
+        assert!(h.state().session.get(id).unwrap().dirty, "nothing was saved");
+        assert!(dir.join("first.pdf").is_dir() && !dir.join("second.pdf").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

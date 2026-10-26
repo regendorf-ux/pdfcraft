@@ -633,6 +633,9 @@ pub struct PdfCraftApp {
     pub(crate) closed_tabs: Vec<String>,
     /// The Rename dialog's name being typed.
     pub(crate) rename_draft: Option<rename_ui::RenameDraft>,
+    /// A name typed in Rename whose "Save and Rename" save did not go through; the dialog opens
+    /// again with it on the next frame.
+    pub(crate) rename_returned: rename_ui::Returned,
     /// `None` shows the Home tab.
     pub active: Option<usize>,
     pub mode: Mode,
@@ -1101,6 +1104,7 @@ impl PdfCraftApp {
             views: Vec::new(),
             closed_tabs: Vec::new(),
             rename_draft: None,
+            rename_returned: rename_ui::Returned::default(),
             active: None,
             mode: Mode::AllTools,
             default_mode: Mode::AllTools,
@@ -3653,6 +3657,7 @@ impl eframe::App for PdfCraftApp {
         self.process_file_requests();
         #[cfg(not(target_arch = "wasm32"))]
         self.process_picked();
+        self.reopen_returned_rename();
         // Last, after everything that can open or answer the "save changes?" question.
         self.attend_save_prompt(ctx);
     }
