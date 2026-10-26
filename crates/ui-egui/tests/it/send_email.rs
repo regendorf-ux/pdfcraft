@@ -64,13 +64,10 @@ fn harness(test: &str) -> (Harness<'static, PdfCraftApp>, PathBuf) {
 #[test]
 fn an_email_app_that_cant_take_the_file_gets_a_message_and_the_file_is_shown() {
     let (mut h, path) = harness("unchanged");
-    h.get_by_label("Menu").click();
-    h.run_steps(2);
-    h.get_by_label("File ⏵").hover();
-    h.run_steps(3);
-    // The menu item's label ends with its (empty) shortcut text. It is pressed as a screen reader
-    // would: a pointer click on the File menu's lower items doesn't reach them headless.
-    h.get_by_label_contains("Send by email…").click_accesskit();
+    crate::support::open_menu(&mut h, "File");
+    // Pressed as a screen reader would: a pointer click on the File menu's lower items doesn't
+    // reach them headless.
+    crate::support::menu_row(&h, "Send by email…").click_accesskit();
     h.run_steps(2);
 
     let asked = sent();
