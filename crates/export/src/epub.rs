@@ -540,7 +540,16 @@ mod tests {
     }
 
     pub(super) fn block(text: &str, size: f64, top: f64) -> Block {
-        Block { text: text.into(), rect: [72.0, top - size, 400.0, top], size, bold: false, italic: false, color: [0.0; 3], rotation: 0.0, space_around: [false; 2] }
+        Block {
+            text: text.into(),
+            rect: [72.0, top - size, 400.0, top],
+            size,
+            bold: false,
+            italic: false,
+            color: [0.0; 3],
+            rotation: 0.0,
+            space_around: [false; 2],
+        }
     }
 
     pub(super) fn page(blocks: Vec<Block>) -> Page {
