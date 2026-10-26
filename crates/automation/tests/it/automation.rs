@@ -723,7 +723,7 @@ fn arabic_ligature_actual_text_is_one_editable_word_through_save_reopen() {
 /// annotations must not tell clients the call is read-only or harmless (#130).
 #[test]
 fn file_writing_tools_are_not_read_only() {
-    for name in ["doc_export_data", "accessibility_report", "image_save"] {
+    for name in ["doc_export_data", "accessibility_report", "image_save", "doc_export_epub"] {
         let t = tools().into_iter().find(|t| t.name == name).unwrap();
         assert!(!t.read_only, "{name} writes a file but advertises read-only");
         assert!(t.destructive, "{name} overwrites its path but advertises non-destructive");
@@ -6754,6 +6754,23 @@ fn exporting_to_epub_in_both_layouts() {
     }
     assert!(a.call("doc_export_epub", &json!({ "doc": doc, "path": "b.epub", "layout": "scroll" })).is_err());
     assert!(!dir.join("b.epub").exists());
+}
+
+/// The book goes only to a `.epub` path: naming the open PDF (or any other file) must neither
+/// replace it with EPUB bytes nor write anything.
+#[test]
+fn exporting_to_epub_refuses_a_path_that_is_not_an_epub() {
+    let dir = workdir("epub-ext");
+    let mut a = auto(&dir);
+    let doc = ok(&mut a, "doc_open", json!({ "path": "a.pdf" }))["doc"].as_u64().unwrap();
+    let pdf = std::fs::read(dir.join("a.pdf")).unwrap();
+    for name in ["a.pdf", "book", "book.epub.txt"] {
+        assert!(a.call("doc_export_epub", &json!({ "doc": doc, "path": name })).is_err(), "{name}");
+    }
+    assert_eq!(std::fs::read(dir.join("a.pdf")).unwrap(), pdf, "the PDF is untouched");
+    assert!(!dir.join("book").exists() && !dir.join("book.epub.txt").exists());
+    ok(&mut a, "doc_export_epub", json!({ "doc": doc, "path": "Upper.EPUB" }));
+    assert!(dir.join("Upper.EPUB").exists());
 }
 
 /// #3120: a PDF whose pages draw "Head", then a chain of `depths[page]` nested forms whose

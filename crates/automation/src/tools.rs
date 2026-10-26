@@ -1158,6 +1158,7 @@ pub fn tools() -> Vec<ToolDef> {
             .cmd("export.docx")
             .with(schema(json!({ "doc": doc(), "path": { "type": "string" } }), &["doc", "path"])),
         t("doc_export_epub", "Export to EPUB", "Export a PDF ▸ EPUB 3 (.epub) of the whole document. layout reflowable (default): the text, tables and images reflow to the reader's screen, in chapters that start at each top-level heading (or every 10 pages), with the bookmarks as the contents and a page list keeping the PDF's page numbers; a tagged PDF gives its heading levels and figure descriptions. layout fixed: each page as it looks (a 150 dpi picture), its text laid over it invisibly so it can be searched and selected. Title, author and language come from the document.")
+            .destructive()
             .cmd("export.epub")
             .with(schema(json!({ "doc": doc(), "path": { "type": "string" }, "layout": { "type": "string", "enum": ["reflowable", "fixed"] } }), &["doc", "path"])),
         t("pdfa_verify", "Verify PDF/A", "Standards ▸ Verify PDF/A compliance: the PDF/A-2b or 3b rules the document breaks (ISO 19005 clause, message, page, whether Save as PDF/A can fix it), plus what it declares.")

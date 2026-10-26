@@ -788,6 +788,10 @@ impl Automation {
     /// Export ▸ EPUB: the whole document as a reflowable book (default) or one page per PDF page.
     pub(crate) fn doc_export_epub(&self, a: &Args) -> Result<Value> {
         let path = self.resolve(a.str("path")?, true)?;
+        // Only a book's own name: never the open PDF's path, which would be replaced with EPUB bytes.
+        if !path.extension().is_some_and(|e| e.eq_ignore_ascii_case("epub")) {
+            return Err(ToolError::InvalidArgs(format!("the output path must end in .epub, got {:?}", a.str("path")?)));
+        }
         let layout = match a.opt_str("layout")?.unwrap_or("reflowable") {
             "reflowable" => pdfcraft_engine::epub::EpubLayout::Reflowable,
             "fixed" => pdfcraft_engine::epub::EpubLayout::Fixed,
