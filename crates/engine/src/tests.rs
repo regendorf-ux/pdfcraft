@@ -1942,6 +1942,29 @@ fn highlight_multiplies_over_text() {
     assert!(bg[0] > 240 && bg[1] > 240 && bg[2] < 30, "{bg:?}");
 }
 
+/// Converting the appearances of comments and form fields needs the permission to comment;
+/// converting the page alone needs only the permission to modify.
+#[test]
+fn converting_colours_of_comments_needs_the_comment_permission() {
+    let mut cos = pdfcraft_cos::Document::open(Arc::new(fixture(1))).unwrap();
+    let params = pdfcraft_cos::NewEncryption {
+        algorithm: pdfcraft_cos::Algorithm::Aes256,
+        user_password: "",
+        owner_password: "own",
+        permissions: !(1 << 5),
+        encrypt_metadata: true,
+        seed: [7; 32],
+    };
+    cos.set_encryption(&params).unwrap();
+    let bytes = pdfcraft_cos::write_full(&cos, &pdfcraft_cos::SaveOptions::default()).unwrap();
+    let mut s = Session::new();
+    let id = s.open("locked.pdf", None, Arc::new(bytes), None).unwrap();
+    let with = ConvertColours { annotations: true, ..ConvertColours::default() };
+    assert_eq!(s.apply(id, Edit::ConvertColours { pages: vec![0], settings: with }), Err(EditError::NotPermitted("comments")));
+    let without = s.apply(id, Edit::ConvertColours { pages: vec![0], settings: ConvertColours::default() });
+    assert!(!matches!(without, Err(EditError::NotPermitted(_))), "{without:?}");
+}
+
 #[test]
 fn comment_permission_is_enforced() {
     let mut cos = pdfcraft_cos::Document::open(Arc::new(fixture(1))).unwrap();

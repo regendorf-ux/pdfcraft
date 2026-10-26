@@ -2388,6 +2388,11 @@ fn check_permission(edit: &Edit, p: &pdfcraft_cos::Permissions) -> Result<(), Ed
                 Err(EditError::NotPermitted("changing security"))
             }
         }
+        // Converting the appearances of comments and form fields changes them too, which
+        // content changes alone do not allow.
+        Edit::ConvertColours { settings, .. } if settings.annotations && !(p.modify() && p.annotate()) => {
+            Err(EditError::NotPermitted(if p.modify() { "comments" } else { "changes to the document" }))
+        }
         // Converting to PDF/A takes the encryption off (PDF/A forbids it), so on an encrypted
         // document it is a change of security (#3921).
         Edit::ConvertPdfA { .. } => {

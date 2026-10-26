@@ -1,7 +1,7 @@
 //! Print production ▸ Convert colours (Acrobat's Convert Colors): the target
 //! space, what to convert, the pages. Convert counts first and says what changed.
 
-use pdfcraft_engine::{ColourTarget, ConvertColours, Edit};
+use pdfcraft_engine::{ColourTarget, ConvertColours, DocId, Edit};
 
 use crate::pageboxes::Range;
 use crate::theme::{self, Tokens};
@@ -11,15 +11,25 @@ use crate::{PdfCraftApp, widgets};
 pub struct ConvertColoursDraft {
     pub settings: ConvertColours,
     pub range: Range,
+    /// The document `range` was chosen for.
+    pub doc: Option<DocId>,
 }
 
 impl Default for ConvertColoursDraft {
     fn default() -> Self {
-        Self { settings: ConvertColours::default(), range: Range::All }
+        Self { settings: ConvertColours::default(), range: Range::All, doc: None }
     }
 }
 
 impl ConvertColoursDraft {
+    /// A range chosen for another document (pages 4–5 of a long one) means nothing on this one.
+    pub fn for_document(&mut self, id: DocId) {
+        if self.doc != Some(id) {
+            self.range = Range::All;
+            self.doc = Some(id);
+        }
+    }
+
     pub fn pages(&self, current: usize, count: usize) -> Vec<usize> {
         match self.range {
             Range::All => (0..count).collect(),
@@ -35,6 +45,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
     let count = app.session.get(id).map(|d| d.info.pages.len()).unwrap_or(0);
     let current = app.views[i].current;
     let d = &mut app.convert_colours_draft;
+    d.for_document(id);
     ui.label(egui::RichText::new(tl!("Convert colours")).font(theme::semibold(18.0)));
     ui.add_space(8.0);
     widgets::section_title(ui, tl!("Convert to"));
@@ -107,5 +118,23 @@ impl PdfCraftApp {
                 &[("c", &found.colours.to_string()), ("i", &found.images.to_string()), ("p", &found.pages.to_string())],
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_page_range_does_not_follow_the_user_to_another_document() {
+        let (a, b) = (DocId(1), DocId(2));
+        let mut d = ConvertColoursDraft::default();
+        d.for_document(a);
+        d.range = Range::Pages(4, 5);
+        d.for_document(a);
+        assert_eq!(d.range, Range::Pages(4, 5), "same document keeps its range");
+        d.for_document(b);
+        assert_eq!(d.range, Range::All);
+        assert_eq!(d.pages(0, 1), vec![0]);
     }
 }
