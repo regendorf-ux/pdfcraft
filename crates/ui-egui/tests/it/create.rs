@@ -424,3 +424,21 @@ fn opening_an_epub_book_converts_it_and_says_so() {
     assert!(err.contains("DRM"), "{err}");
     assert_eq!(h.state().views.len(), 1);
 }
+
+#[test]
+fn a_book_conversion_with_nothing_to_report_still_says_it_was_converted() {
+    use egui_kittest::{Harness, kittest::Queryable};
+    let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_eframe(|_cc| {
+        let mut app = PdfCraftApp::new();
+        app.set_option("language", "en").unwrap();
+        app.open_bytes("plain.txt", None, b"Some words.".to_vec()).unwrap();
+        app
+    });
+    h.run_steps(4);
+    let id = h.state().views[0].id;
+    // A fixed-layout book can convert with an empty log.
+    h.state_mut().session.note_book(id, &[]);
+    h.run_steps(4);
+    assert!(h.state().session.get(id).unwrap().repair_log().is_empty());
+    h.get_by_label("Converted from an EPUB book.");
+}
