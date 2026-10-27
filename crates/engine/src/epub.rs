@@ -1,4 +1,4 @@
-//! Export a PDF â–¸ EPUB (#493, #2620, #2628): the document as a reflowable book, or a page per PDF
+//! Export a PDF ▸ EPUB (#493, #2620, #2628): the document as a reflowable book, or a page per PDF
 //! page (fixed layout). What the book is made of comes from the document here ([`EpubBook`]); the
 //! fixed layout's page pictures are drawn later, on whatever thread exports, from an
 //! [`crate::export::ExportSource`].
@@ -91,7 +91,7 @@ fn language_tag(tag: &str) -> bool {
 }
 
 impl crate::Document {
-    /// What an EPUB of this document is made of (Export â–¸ EPUB): every page's paragraphs, tables
+    /// What an EPUB of this document is made of (Export ▸ EPUB): every page's paragraphs, tables
     /// and images, its title, author and language, the bookmarks, and a tagged document's heading
     /// levels and figure descriptions.
     pub fn epub_book(&self) -> EpubBook {
