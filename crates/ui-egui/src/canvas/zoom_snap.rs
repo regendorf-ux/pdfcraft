@@ -40,9 +40,10 @@ pub(crate) fn page_input(ui: &egui::Ui, resp: &egui::Response, xf: &PageXform, p
     {
         let r = xf.view_rect(area);
         ui.painter().rect_stroke(r, CornerRadius::ZERO, Stroke::new(1.5, Color32::from_rgb(0x14, 0x73, 0xE6)), egui::StrokeKind::Middle);
-        egui::Area::new(egui::Id::unique("snapshot-area-menu")).order(egui::Order::Foreground).fixed_pos(r.left_bottom() + egui::vec2(0.0, 6.0)).show(
-            ui.ctx(),
-            |ui| {
+        egui::Area::new(egui::Id::unique("snapshot-area-menu"))
+            .order(egui::Order::Foreground)
+            .fixed_pos(r.left_bottom() + egui::vec2(0.0, 6.0))
+            .show(ui.ctx(), |ui| {
                 egui::Frame::popup(ui.style()).show(ui, |ui| {
                     ui.horizontal(|ui| {
                         if ui.button(tl!("Print area…")).clicked() {
@@ -53,8 +54,7 @@ pub(crate) fn page_input(ui: &egui::Ui, resp: &egui::Response, xf: &PageXform, p
                         }
                     });
                 });
-            },
-        );
+            });
     }
     if let Some((p, start)) = view.marquee
         && p == page
