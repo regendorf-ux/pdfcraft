@@ -35,9 +35,9 @@ pub use as_html::html;
 use as_html::{allowed, base64};
 pub use as_rtf::rtf;
 pub use layout::{Block, Cell, Image, Page, Table};
+pub(crate) use layout::{Item, Run, body_size, items, level, paragraphs, tables};
 #[cfg(test)]
 use layout::{LOOKUP_STEPS, MAX_COLS};
-pub(crate) use layout::{Item, Run, body_size, items, level, paragraphs, tables};
 
 #[cfg(test)]
 mod tests;
