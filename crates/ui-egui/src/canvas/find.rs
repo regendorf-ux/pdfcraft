@@ -1,4 +1,4 @@
-use super::{Align2, Color32, CornerRadius, DocView, Range, Rect, Stroke, Tokens, icons, theme, vec2, widgets};
+use super::{Align2, Color32, CornerRadius, DocView, Range, Rect, Stroke, Tokens, ViewAction, icons, theme, vec2, widgets};
 
 /// The find bar (⌘F): query, matches across the document, current match.
 #[derive(Default)]
