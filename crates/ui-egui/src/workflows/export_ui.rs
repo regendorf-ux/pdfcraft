@@ -59,7 +59,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, kind: E
     if kind == ExportKind::Image {
         ui.horizontal(|ui| {
             ui.label(tl!("Resolution"));
-            egui::ComboBox::from_id_salt("export-dpi")
+            craft_ui::ComboBox::from_id_salt("export-dpi")
                 .selected_text(crate::i18n::fmt(tl!("{dpi} pixels/inch"), &[("dpi", &d.dpi.to_string())]))
                 .show_ui(ui, |ui| {
                     for dpi in [72.0, 96.0, 150.0, 300.0, 600.0] {
@@ -73,7 +73,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, kind: E
                 ImageFormat::Jpeg { quality } => quality,
                 _ => 85,
             };
-            egui::ComboBox::from_id_salt("export-format").selected_text(d.format.label()).show_ui(ui, |ui| {
+            craft_ui::ComboBox::from_id_salt("export-format").selected_text(d.format.label()).show_ui(ui, |ui| {
                 for f in [ImageFormat::Png, ImageFormat::Jpeg { quality }, ImageFormat::Tiff] {
                     let on = std::mem::discriminant(&d.format) == std::mem::discriminant(&f);
                     if ui.selectable_label(on, f.label()).clicked() {
@@ -99,7 +99,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, kind: E
             let label = move |n: u32| {
                 if n == 0 { tl!("No limit").to_string() } else { crate::i18n::trn(crate::i18n::current(), u64::from(n), "{n} pixel", "{n} pixels") }
             };
-            egui::ComboBox::from_id_salt("export-min").selected_text(label(d.min_side)).show_ui(ui, |ui| {
+            craft_ui::ComboBox::from_id_salt("export-min").selected_text(label(d.min_side)).show_ui(ui, |ui| {
                 for n in [0, 16, 32, 64, 128, 256] {
                     ui.selectable_value(&mut d.min_side, n, label(n));
                 }
@@ -150,8 +150,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, kind: E
 }
 
 /// Write the files (`name`, bytes) produced for `pages`, reporting progress.
-#[allow(clippy::too_many_arguments)]
-fn run(
+struct ExportTask<'a> {
     src: ExportSource,
     kind: ExportKind,
     dpi: f64,
@@ -160,10 +159,12 @@ fn run(
     epub: Option<(EpubBook, EpubLayout, i64)>,
     pages: Vec<usize>,
     stem: String,
-    mut sink: impl FnMut(&str, Vec<u8>) -> Result<(), String>,
-    status: &ExportStatus,
+    status: &'a ExportStatus,
     lang: crate::i18n::Lang,
-) -> String {
+}
+
+fn run(task: ExportTask<'_>, mut sink: impl FnMut(&str, Vec<u8>) -> Result<(), String>) -> String {
+    let ExportTask { src, kind, dpi, format, min_side, epub, pages, stem, status, lang } = task;
     // May run on a worker thread: messages are drawn in the UI's language.
     crate::i18n::set_current(lang);
     let total = pages.len();
@@ -215,12 +216,18 @@ fn run(
             }
         }
         ExportKind::Image => {
-            for (k, p) in pages.iter().enumerate() {
-                set(k, None);
-                let result = ex.image(*p, dpi, format).and_then(|img| sink(&format!("{stem}_page_{}.{}", p + 1, format.extension()), img));
-                if let Err(e) = result {
-                    return crate::i18n::fmt(tl!("Export stopped: {e}"), &[("e", &e.to_string())]);
-                }
+            set(0, None);
+            // Pages are drawn several at once and handed over in order: the progress counts the
+            // pages written so far.
+            let mut done = 0;
+            let result = ex.images(&pages, dpi, format, |p, img| {
+                sink(&format!("{stem}_page_{}.{}", p + 1, format.extension()), img)?;
+                done += 1;
+                set(done, None);
+                Ok(())
+            });
+            if let Err(e) = result {
+                return crate::i18n::fmt(tl!("Export stopped: {e}"), &[("e", &e.to_string())]);
             }
             let mut msg = if total == 1 {
                 crate::i18n::fmt(tl!("Exported 1 image"), &[])
@@ -293,7 +300,7 @@ impl PdfCraftApp {
                     let sink = |name: &str, bytes: Vec<u8>| {
                         crate::editing::write_atomically(&dir.join(name).to_string_lossy(), &bytes).map_err(|e| format!("{name}: {e}"))
                     };
-                    let msg = run(src, kind, dpi, format, min_side, epub, pages, stem, sink, &st, lang);
+                    let msg = run(ExportTask { src, kind, dpi, format, min_side, epub, pages, stem, status: &st, lang }, sink);
                     if let Ok(mut s) = st.lock() {
                         let (done, total) = s.as_ref().map_or((0, 0), |(d, t, _)| (*d, *t));
                         let done_msg = crate::i18n::fmt(tl!("{msg} to {dir}"), &[("msg", &msg), ("dir", &shown)]);
@@ -334,17 +341,8 @@ impl PdfCraftApp {
                 _ => None,
             };
             let msg = run(
-                src,
-                kind,
-                dpi,
-                format,
-                min_side,
-                epub,
-                pages,
-                stem,
+                ExportTask { src, kind, dpi, format, min_side, epub, pages, stem, status: &status, lang: crate::i18n::current() },
                 |name, bytes| crate::editing::download(name, &bytes),
-                &status,
-                crate::i18n::current(),
             );
             if let Ok(mut s) = status.lock() {
                 *s = Some((0, 0, Some(msg)));
