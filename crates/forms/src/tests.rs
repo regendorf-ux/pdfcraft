@@ -1876,6 +1876,73 @@ fn tab_order_follows_the_page_setting() {
 }
 
 #[test]
+fn rows_and_columns_tab_right_to_left_in_a_document_bound_on_the_right() {
+    let mut doc = one_page();
+    let text = NewField::Text { multiline: false };
+    // A (50,700)  B (300,700)
+    // C (50,600)  D (300,600)
+    for (name, x, y) in [("C", 50.0, 600.0), ("A", 50.0, 700.0), ("D", 300.0, 600.0), ("B", 300.0, 700.0)] {
+        add_field(&mut doc, 0, [x, y, x + 200.0, y + 20.0], &text, Some(name)).unwrap();
+    }
+    let order = |doc: &Document| -> String {
+        let mut all: Vec<(usize, String)> = fields(doc).into_iter().map(|f| (f.widgets[0].tab, f.name)).collect();
+        all.sort();
+        all.into_iter().map(|x| x.1).collect()
+    };
+    let root = doc.root().unwrap();
+    let mut prefs = pdfcraft_cos::Dict::new();
+    prefs.set(b"Direction".to_vec(), Object::name("R2L"));
+    let prefs = doc.add(prefs);
+    doc.update_dict(root, |c| c.set(b"ViewerPreferences".to_vec(), Object::Ref(prefs))).unwrap();
+    set_tab_order(&mut doc, &[0], TabOrder::Row).unwrap();
+    assert_eq!(order(&doc), "BADC", "rows top to bottom, each right to left");
+    set_tab_order(&mut doc, &[0], TabOrder::Column).unwrap();
+    assert_eq!(order(&doc), "BDAC", "columns right to left, each top to bottom");
+    assert_eq!(order(&reopen(&doc)), "BDAC");
+    set_tab_order(&mut doc, &[0], TabOrder::Annotations).unwrap();
+    assert_eq!(order(&doc), "CADB", "unspecified keeps annotation order");
+    doc.update_dict(prefs, |p| p.set(b"Direction".to_vec(), Object::name("L2R"))).unwrap();
+    set_tab_order(&mut doc, &[0], TabOrder::Row).unwrap();
+    assert_eq!(order(&doc), "ABCD", "bound on the left");
+}
+
+#[test]
+fn tab_orders_are_read_for_each_page() {
+    let mut doc = document(&[
+        "<< /Type /Catalog /Pages 2 0 R >>".into(),
+        "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R 7 0 R] /Count 5 /MediaBox [0 0 600 800] >>".into(),
+        "<< /Type /Page /Parent 2 0 R /Tabs /C >>".into(),
+        "<< /Type /Page /Parent 2 0 R >>".into(),
+        "<< /Type /Page /Parent 2 0 R /Tabs /S >>".into(),
+        "<< /Type /Page /Parent 2 0 R /Tabs /W >>".into(),
+        "<< /Type /Page /Parent 2 0 R /Tabs 8 0 R >>".into(),
+        "/R".into(),
+    ]);
+    use TabOrder::{Annotations, Column, Row, Structure};
+    assert_eq!(tab_orders(&doc), [Column, Annotations, Structure, Annotations, Row], "no /Tabs, or an unknown name: unspecified");
+    set_tab_order(&mut doc, &[1], Row).unwrap();
+    set_tab_order(&mut doc, &[0, 4], Annotations).unwrap();
+    let doc = reopen(&doc);
+    assert_eq!(tab_orders(&doc), [Annotations, Row, Structure, Annotations, Annotations]);
+}
+
+#[test]
+fn an_indirect_tabs_value_orders_the_page() {
+    let mut doc = one_page();
+    let text = NewField::Text { multiline: false };
+    for (name, x, y) in [("C", 50.0, 600.0), ("A", 50.0, 700.0), ("D", 300.0, 600.0), ("B", 300.0, 700.0)] {
+        add_field(&mut doc, 0, [x, y, x + 200.0, y + 20.0], &text, Some(name)).unwrap();
+    }
+    let column = doc.add(Object::name("C"));
+    let page = page_refs(&doc)[0];
+    doc.update_dict(page, |p| p.set(b"Tabs".to_vec(), Object::Ref(column))).unwrap();
+    let mut all: Vec<(usize, String)> = fields(&doc).into_iter().map(|f| (f.widgets[0].tab, f.name)).collect();
+    all.sort();
+    assert_eq!(all.into_iter().map(|x| x.1).collect::<String>(), "ACBD", "columns, as a direct /C orders them");
+    assert_eq!(tab_orders(&doc), [TabOrder::Column]);
+}
+
+#[test]
 fn options_tab_flags_alignment_and_defaults() {
     let mut doc = one_page();
     let text = add_field(&mut doc, 0, [50.0, 700.0, 250.0, 720.0], &NewField::Text { multiline: false }, None).unwrap();
@@ -4619,4 +4686,151 @@ fn set_values_reads_the_form_once_not_per_value() {
     assert!(set_values(&mut doc, &again).unwrap().iter().all(Result::is_ok));
     let reads = form_reads() - before;
     assert_eq!(reads, 3, "one to fill, one when f0 comes again, one to recalculate");
+}
+
+/// A radio group `size` with the buttons Small (on), Medium and Large, a per-widget `/Opt`, and
+/// the group's buttons in the calculation order; and a text field `name` with two widgets.
+fn radio_group_form() -> Document {
+    let objs: Vec<String> = vec![
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >>".into(),                         // 1
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>".into(),         // 2
+        "<< /Type /Page /Parent 2 0 R /Annots [6 0 R 7 0 R 8 0 R 10 0 R 11 0 R] >>".into(), // 3
+        "<< /Fields [5 0 R 9 0 R] /DA (/Helv 0 Tf 0 g) /CO [7 0 R] >>".into(),              // 4
+        "<< /FT /Btn /Ff 49152 /T (size) /V /S /Opt [(small) (medium) (large)] /Kids [6 0 R 7 0 R 8 0 R] >>".into(), // 5
+        "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [50 700 64 714] /P 3 0 R /AS /S /AP << /N << /S 12 0 R /Off 12 0 R >> >> >>".into(), // 6
+        "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [80 700 94 714] /P 3 0 R /AS /Off /AP << /N << /M 12 0 R /Off 12 0 R >> >> >>".into(), // 7
+        "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [110 700 124 714] /P 3 0 R /AS /Off /AP << /N << /L 12 0 R /Off 12 0 R >> >> >>".into(), // 8
+        "<< /FT /Tx /T (name) /V (Ann) /Kids [10 0 R 11 0 R] >>".into(), // 9
+        "<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [50 600 250 620] /P 3 0 R >>".into(), // 10
+        "<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [300 600 500 620] /P 3 0 R >>".into(), // 11
+        "<< /Length 0 >>\nstream\n\nendstream".into(),                   // 12
+    ];
+    document(&objs)
+}
+
+fn annots(doc: &Document) -> Vec<u32> {
+    let p = page_refs(doc)[0];
+    let a = doc.resolve(doc.get(p).as_dict().unwrap().get(b"Annots").unwrap());
+    a.as_array().unwrap().iter().map(|o| o.as_ref().unwrap().num).collect()
+}
+
+#[test]
+fn deleting_one_radio_button_keeps_the_group_and_its_other_buttons() {
+    let mut doc = radio_group_form();
+    delete_widget(&mut doc, "size", 1).unwrap();
+    let doc = reopen(&doc);
+    let all = fields(&doc);
+    let size = field(&all, "size");
+    assert_eq!(size.widgets.iter().map(|w| w.obj.num).collect::<Vec<_>>(), [6, 8], "only Medium is gone");
+    assert_eq!(size.value, ["S"], "the group keeps its choice");
+    // The per-widget /Opt loses Medium's entry, so the others keep their export values.
+    assert_eq!((size.export_of(0), size.export_of(1)), (Some("small"), Some("large")));
+    assert_eq!(annots(&doc), [6, 8, 10, 11], "the button left the page");
+    let co = doc.resolve(doc.get(ObjRef::new(4, 0)).as_dict().unwrap().get(b"CO").unwrap()).as_array().cloned().unwrap();
+    assert!(co.is_empty(), "and the calculation order");
+    assert!(field(&all, "name").widgets.len() == 2, "other fields are untouched");
+}
+
+#[test]
+fn deleting_the_chosen_radio_button_turns_the_group_off() {
+    let mut doc = radio_group_form();
+    delete_widget(&mut doc, "size", 0).unwrap();
+    let all = fields(&reopen(&doc));
+    let size = field(&all, "size");
+    assert_eq!(size.widgets.iter().map(|w| w.obj.num).collect::<Vec<_>>(), [7, 8]);
+    assert!(size.value.is_empty(), "no button is on any more: {:?}", size.value);
+    assert_eq!((size.export_of(0), size.export_of(1)), (Some("medium"), Some("large")));
+}
+
+#[test]
+fn deleting_the_chosen_radio_button_turns_the_group_off_when_a_twin_is_not_shown_on() {
+    // Medium shares Small's on-state name but shows Off: once Small is gone, no button shows
+    // the group's /V, so the group must not keep reporting it.
+    let mut doc = radio_group_form();
+    let twin = ObjRef::new(7, 0);
+    let blank = Object::Ref(ObjRef::new(12, 0));
+    let mut n = Dict::new();
+    n.set(b"S".to_vec(), blank.clone());
+    n.set(b"Off".to_vec(), blank);
+    let mut ap = Dict::new();
+    ap.set(b"N".to_vec(), Object::Dict(n));
+    let mut w = doc.get(twin).as_dict().cloned().unwrap();
+    w.set(b"AP".to_vec(), Object::Dict(ap));
+    doc.set(twin, Object::Dict(w));
+    delete_widget(&mut doc, "size", 0).unwrap();
+    let all = fields(&reopen(&doc));
+    let size = field(&all, "size");
+    assert_eq!(size.widgets.iter().map(|w| w.obj.num).collect::<Vec<_>>(), [7, 8]);
+    assert!(size.value.is_empty(), "no button shows S any more: {:?}", size.value);
+}
+
+#[test]
+fn deleting_the_default_radio_button_clears_the_default_too() {
+    // The group is off, but Reset would put back Small, which no button has once it is gone.
+    let mut doc = radio_group_form();
+    let size = ObjRef::new(5, 0);
+    let mut d = doc.get(size).as_dict().cloned().unwrap();
+    d.set(b"V".to_vec(), Object::name("Off"));
+    d.set(b"DV".to_vec(), Object::name("S"));
+    doc.set(size, Object::Dict(d));
+    delete_widget(&mut doc, "size", 0).unwrap();
+    let doc = reopen(&doc);
+    let dv = doc.get(size).as_dict().and_then(|d| d.get(b"DV").cloned());
+    assert_eq!(dv, Some(Object::name("Off")));
+    // A default another button still has stays.
+    let mut doc = radio_group_form();
+    let mut d = doc.get(size).as_dict().cloned().unwrap();
+    d.set(b"DV".to_vec(), Object::name("S"));
+    doc.set(size, Object::Dict(d));
+    delete_widget(&mut doc, "size", 1).unwrap();
+    assert_eq!(doc.get(size).as_dict().and_then(|d| d.get(b"DV").cloned()), Some(Object::name("S")));
+}
+
+#[test]
+fn deleting_one_copy_of_a_field_keeps_the_field_and_its_value() {
+    let mut doc = radio_group_form();
+    delete_widget(&mut doc, "name", 0).unwrap();
+    let doc = reopen(&doc);
+    let all = fields(&doc);
+    let name = field(&all, "name");
+    assert_eq!((name.widgets.iter().map(|w| w.obj.num).collect::<Vec<_>>(), name.value.clone()), (vec![11], vec!["Ann".to_string()]));
+    assert_eq!(annots(&doc), [6, 7, 8, 11]);
+    // The last widget takes the field with it, as deleting the field does.
+    let mut doc = doc;
+    delete_widget(&mut doc, "name", 0).unwrap();
+    let doc = reopen(&doc);
+    assert!(!fields(&doc).iter().any(|f| f.name == "name"));
+    assert_eq!(annots(&doc), [6, 7, 8]);
+}
+
+#[test]
+fn deleting_a_radio_button_without_its_parent_link_takes_it_out_of_the_group() {
+    // A damaged file: the group lists Medium in its /Kids, but Medium has no /Parent.
+    for parent in [None, Some(Object::Ref(ObjRef::new(9, 0)))] {
+        let mut doc = radio_group_form();
+        let medium = ObjRef::new(7, 0);
+        let mut w = doc.get(medium).as_dict().cloned().unwrap();
+        w.remove(b"Parent");
+        if let Some(p) = parent.clone() {
+            w.set(b"Parent".to_vec(), p);
+        }
+        doc.set(medium, Object::Dict(w));
+        delete_widget(&mut doc, "size", 1).unwrap();
+        let doc = reopen(&doc);
+        let all = fields(&doc);
+        assert_eq!(field(&all, "size").widgets.iter().map(|w| w.obj.num).collect::<Vec<_>>(), [6, 8], "/Parent {parent:?}");
+        let kids = doc.resolve(doc.get(ObjRef::new(5, 0)).as_dict().unwrap().get(b"Kids").unwrap()).as_array().cloned().unwrap();
+        assert!(!kids.iter().any(|k| k.as_ref() == Some(medium)), "/Parent {parent:?}: {kids:?}");
+        assert_eq!(field(&all, "name").widgets.len(), 2, "/Parent {parent:?}: the other field is untouched");
+        assert_eq!(annots(&doc), [6, 8, 10, 11]);
+    }
+}
+
+#[test]
+fn deleting_a_widget_that_is_not_there_changes_nothing() {
+    let mut doc = radio_group_form();
+    assert_eq!(delete_widget(&mut doc, "size", 3), Err(FormError::Invalid("size has no widget 4".into())));
+    assert_eq!(delete_widget(&mut doc, "nope", 0), Err(FormError::NoSuchField("nope".into())));
+    assert_eq!(delete_widget(&mut doc, "size", usize::MAX), Err(FormError::Invalid(format!("size has no widget {}", usize::MAX))));
+    assert_eq!(field(&fields(&doc), "size").widgets.len(), 3);
 }
