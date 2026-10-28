@@ -1,7 +1,7 @@
 use super::{
-    Arc, CombineSource, Combined, DataFormat, DocId, EditError, Hidden, ImageResolution, LOW_RESOLUTION_PRINT_DPI, OptimizeReport, SaveOptions,
-    Session, SourceKind, SplitPart, decode_text, guard, open_source, open_source_with, optimize, print, print_raster, set_default_layer_state,
-    source_kind, writable, write_full,
+    Arc, CombineSource, Combined, DataFormat, DocId, EditError, Hairlines, HairlinesFixed, Hidden, ImageResolution, LOW_RESOLUTION_PRINT_DPI,
+    OptimizeReport, SaveOptions, Session, SourceKind, SplitPart, decode_text, guard, open_source, open_source_with, optimize, print, print_raster,
+    set_default_layer_state, source_kind, writable, write_full,
 };
 
 impl Session {
