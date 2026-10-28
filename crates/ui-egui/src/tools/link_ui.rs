@@ -6,8 +6,7 @@ use egui::{Color32, CornerRadius, Pos2, Rect, Stroke};
 use pdfcraft_engine::{Edit, LinkAction, LinkHighlight, LinkItem, LinkStyle};
 use pdfcraft_render::DocInfo;
 
-use crate::canvas::{DocView, PageXform};
-use crate::page_pointer::PagePointer;
+use crate::canvas::{DocView, PageToolContext, PageXform};
 use crate::theme::{self, Tokens};
 use crate::{PdfCraftApp, widgets};
 
@@ -57,17 +56,8 @@ fn to_user(xf: &PageXform, info: &DocInfo, page: usize, p: Pos2) -> [f64; 2] {
 }
 
 /// Link tool input on one page. Returns `true` when the gesture belongs to the tool.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn page_input(
-    ui: &egui::Ui,
-    resp: &egui::Response,
-    xf: &PageXform,
-    ptr: &PagePointer,
-    page: usize,
-    info: &DocInfo,
-    links: &[LinkItem],
-    view: &mut DocView,
-) -> bool {
+pub(crate) fn page_input(cx: PageToolContext<'_>, links: &[LinkItem], view: &mut DocView) -> bool {
+    let PageToolContext { ui, resp, xf, ptr, page, info, .. } = cx;
     let pointer = ptr.pos;
     let lv = &mut view.links;
     if let Some((dp, start)) = lv.drag
