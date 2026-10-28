@@ -695,7 +695,7 @@ fn untouched_rows(block: &TextBlock, draft: &str, rows: &[std::ops::Range<usize>
         .enumerate()
         .map(|(r, range)| {
             source_rows.get(r).is_some_and(|source| {
-                !range.is_empty() && range.len() == source.len() && range.clone().zip(source.clone()).all(|(i, j)| origin(i) == Some(j))
+                !range.is_empty() && range.len() == source.len() && range.clone().zip(source.clone()).all(|(i, j)| origins.of(i) == Some(j))
             })
         })
         .collect()
