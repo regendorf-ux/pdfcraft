@@ -126,6 +126,11 @@ impl PdfCraftApp {
                         self.execute("prepress.hairlines");
                         return Ok(());
                     }
+                    "page-properties" => {
+                        // Same path as the panel, so the selected pages and their order are seeded.
+                        self.execute("page.properties");
+                        self.dialog
+                    }
                     "none" => None,
                     _ => Some(Dialog::About),
                 }

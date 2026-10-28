@@ -8,6 +8,7 @@ use pdfcraft_engine::Edit;
 use crate::{CloseRequest, Dialog, PdfCraftApp, PropsTab, panels::human_size, widgets};
 
 pub(super) mod appearance;
+pub mod bookmark_styles_ui;
 pub(super) mod comment_props;
 pub(super) mod credits;
 pub(super) mod hairlines_ui;
@@ -54,6 +55,7 @@ struct Pending {
     summarize_now: bool,
     optimize_now: bool,
     duplicate_now: Option<Edit>,
+    page_props_now: Option<(pdfcraft_engine::DocId, u64, Edit)>,
     replace_now: bool,
     open_revision: Option<usize>,
     a11y_now: bool,
@@ -219,6 +221,19 @@ fn dialog_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, dialog: Dialog, req: &m
             if !dialog_rotate_pages(ui, app, req) {
                 return false;
             }
+        }
+        Dialog::PageProps => {
+            let Some(d) = app.page_props_draft.as_mut() else {
+                req.close = true;
+                return false;
+            };
+            let (ok, cancel) = crate::organize_panel::page_props_body(ui, d);
+            // An order every page already has adds no undo step.
+            if ok && let Some(order) = d.tab_order.filter(|o| d.before != Some(*o)) {
+                req.page_props_now = Some((d.doc, d.generation, Edit::SetTabOrder { pages: d.pages.clone(), order }));
+            }
+            req.close = ok || cancel;
+            return false;
         }
         Dialog::DuplicateField => {
             if !dialog_duplicate_field(ui, app, req) {
@@ -413,6 +428,10 @@ fn dialog_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, dialog: Dialog, req: &m
             let (go, cancel) = crate::hairlines_ui::body(ui, app, &t);
             req.fix_hairlines_now = go;
             req.close = go || cancel;
+            return false;
+        }
+        Dialog::BookmarksFromTextStyles => {
+            req.close = crate::bookmark_styles_ui::body(ui, app, &t);
             return false;
         }
         Dialog::NumberPages => {
@@ -1651,6 +1670,15 @@ fn finish_actions(app: &mut PdfCraftApp, req: &mut Pending) {
         app.duplicate_draft = None;
         app.apply_edit(e);
     }
+    // Another document became active, or the document changed, while the dialog was open: the
+    // pages at those indices may not be the ones chosen.
+    if let Some((doc, generation, e)) = req.page_props_now.take() {
+        if app.active_ids().is_some_and(|(_, id)| id == doc) && app.session.get(doc).is_some_and(|d| d.edit_generation() == generation) {
+            app.apply_edit(e);
+        } else {
+            app.notify_tr("The document changed while the dialog was open, so nothing was changed. Open Page properties again to set the tab order.");
+        }
+    }
     if req.extract_now {
         app.extract_selection();
     }
@@ -1806,6 +1834,7 @@ fn finish_close(app: &mut PdfCraftApp, dialog: Dialog, modal_closed: bool, req: 
         app.view_draft = None;
         app.custom_draft = None;
         app.bulk_field_props = None;
+        app.unmarked_page = Default::default();
     } else {
         app.dialog = Some(req.next.unwrap_or(dialog));
     }
