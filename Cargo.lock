@@ -4419,7 +4419,7 @@ version = "0.14.0"
 dependencies = [
  "chrono",
  "flate2",
- "roxmltree",
+ "roxmltree 0.20.0",
 ]
 
 [[package]]
