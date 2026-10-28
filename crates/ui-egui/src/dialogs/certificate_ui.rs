@@ -234,7 +234,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
         }
         ui.horizontal(|ui| {
             let label = ui.label(tl!("Add your digital ID"));
-            let combo = egui::ComboBox::from_id_salt("cert-own-id").width(200.0).selected_text(id_label(&files, &d.own_id)).show_ui(ui, |ui| {
+            let combo = craft_ui::ComboBox::from_id_salt("cert-own-id").width(200.0).selected_text(id_label(&files, &d.own_id)).show_ui(ui, |ui| {
                 for (p, n) in &files {
                     ui.selectable_value(&mut d.own_id, p.clone(), n);
                 }
@@ -264,7 +264,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
                 p.algorithm = Algorithm::Aes256;
             }
             let cur = algos.iter().find(|(a, _)| *a == p.algorithm).map_or(algos[0].1, |(_, l)| *l);
-            let combo = egui::ComboBox::from_id_salt("cert-algo").width(300.0).selected_text(cur).show_ui(ui, |ui| {
+            let combo = craft_ui::ComboBox::from_id_salt("cert-algo").width(300.0).selected_text(cur).show_ui(ui, |ui| {
                 for (a, l) in algos {
                     ui.selectable_value(&mut p.algorithm, a, l);
                 }
@@ -280,7 +280,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
             let label = ui.label(tl!("Printing allowed"));
             let opts = [(Printing::None, tl!("None")), (Printing::Low, tl!("Low Resolution (150 dpi)")), (Printing::High, tl!("High Resolution"))];
             let cur = opts.iter().find(|(o, _)| *o == p.printing).map_or(tl!("High Resolution"), |(_, l)| *l);
-            let combo = egui::ComboBox::from_id_salt("cert-print").width(300.0).selected_text(cur).show_ui(ui, |ui| {
+            let combo = craft_ui::ComboBox::from_id_salt("cert-print").width(300.0).selected_text(cur).show_ui(ui, |ui| {
                 for (o, l) in opts {
                     ui.selectable_value(&mut p.printing, o, l);
                 }
@@ -296,7 +296,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> (boo
                 (Changes::AnyExceptExtract, tl!("Any except extracting pages")),
             ];
             let cur = opts.iter().find(|(o, _)| *o == p.changes).map_or(tl!("None"), |(_, l)| *l);
-            let combo = egui::ComboBox::from_id_salt("cert-changes").width(300.0).selected_text(cur).show_ui(ui, |ui| {
+            let combo = craft_ui::ComboBox::from_id_salt("cert-changes").width(300.0).selected_text(cur).show_ui(ui, |ui| {
                 for (o, l) in opts {
                     ui.selectable_value(&mut p.changes, o, l);
                 }
@@ -404,7 +404,7 @@ pub(crate) fn open_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
         ui.horizontal(|ui| {
             let shown = if chosen.is_empty() { tl!("Choose a digital ID file").to_string() } else { id_label(&files, chosen) };
             // The accessible name stays the field's, not the selected file's.
-            egui::ComboBox::from_id_salt("certificate-password-id")
+            craft_ui::ComboBox::from_id_salt("certificate-password-id")
                 .width(300.0)
                 .selected_text(shown)
                 .show_ui(ui, |ui| {

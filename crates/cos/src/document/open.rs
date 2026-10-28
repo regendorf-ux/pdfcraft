@@ -1,5 +1,5 @@
 use super::reader::{find, generated_id};
-use super::state::{Credentials, same_encryption};
+use super::state::{Credential, Credentials, same_encryption};
 use super::xref::XrefIndex;
 use super::{Arc, BTreeMap, CosError, Dict, Document, ObjRef, Object};
 
