@@ -1,6 +1,6 @@
 use super::{
-    Arc, DocId, EditError, Keys, OpenError, RecoverySnapshot, RenderPool, SaveOptions, Session, SignOptions, TrustStore, display_bytes, guard,
-    render_threads, signatures_of, writable, write_full, write_incremental, xfa_sync_datasets,
+    Arc, DocId, EditError, Keys, OpenError, RecoverySnapshot, RenderPool, SaveOptions, Session, SignOptions, TrustStore, certificate_secured,
+    display_bytes, guard, plain_copy, render_threads, signatures_of, working_file, writable, write_full, write_incremental, xfa_sync_datasets,
 };
 
 impl Session {
