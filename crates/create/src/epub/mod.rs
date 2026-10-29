@@ -400,6 +400,83 @@ impl Mapping {
     }
 }
 
+/// The picture at `path` as a resource name and object, embedded the first time it is placed.
+fn image_entry(
+    doc: &mut Document,
+    image_names: &mut HashMap<String, (String, ObjRef)>,
+    pictures: &mut Pictures,
+    path: &str,
+    notes: &mut Vec<String>,
+) -> Option<(String, ObjRef)> {
+    match image_names.get(path) {
+        Some(e) => Some(e.clone()),
+        None => match pictures.get(path).cloned() {
+            Some((name, bytes, _)) => match crate::image_xobject(doc, &name, &bytes) {
+                Ok((r, _)) => {
+                    let e = (format!("Im{}", image_names.len() + 1), r);
+                    image_names.insert(path.to_string(), e.clone());
+                    Some(e)
+                }
+                Err(e) => {
+                    notes.push(format!("{path}: the picture could not be embedded ({e})"));
+                    None
+                }
+            },
+            None => None,
+        },
+    }
+}
+
+/// One run of glyphs in a face, size and colour, as text operators on the page's content.
+fn glyph_run(
+    c: &mut Vec<u8>,
+    resource: &str,
+    style: (FaceId, f64, [f64; 3]),
+    glyphs: &[(text::Glyph, [f64; 2])],
+    maps: &mut HashMap<usize, Mapping>,
+    fonts: &Fonts,
+) {
+    let (face, size, color) = style;
+    c.extend(format!("BT {} {} {} rg /{resource} {} Tf\n", num(color[0]), num(color[1]), num(color[2]), num(size)).bytes());
+    // TJ runs: a new Tm where a glyph leaves the line, adjustments where shaping
+    // moved it from where the font's own advance would put it.
+    let mut pen: Option<(f64, f64)> = None;
+    let mut tj = String::new();
+    let flush = |tj: &mut String, c: &mut Vec<u8>| {
+        if !tj.is_empty() {
+            c.extend(format!("[{tj}] TJ\n").bytes());
+            tj.clear();
+        }
+    };
+    for (g, [x, y]) in glyphs {
+        let code = match face {
+            FaceId::Std(_) => format!("{:02X}", g.id),
+            FaceId::Program(i) => match maps.entry(i).or_default().cid(g.id, &g.text) {
+                Some(cid) => format!("{cid:04X}"),
+                None => continue,
+            },
+        };
+        match pen {
+            Some((px, py)) if (py - y).abs() < 0.001 => {
+                let delta = x - px;
+                if delta.abs() > 0.0005 {
+                    tj.push_str(&format!(" {} ", num(-delta * 1000.0 / size)));
+                }
+            }
+            _ => {
+                flush(&mut tj, c);
+                c.extend(format!("1 0 0 1 {} {} Tm\n", num(*x), num(*y)).bytes());
+            }
+        }
+        tj.push('<');
+        tj.push_str(&code);
+        tj.push('>');
+        pen = Some((x + fonts.font_advance(face, g.id) * size, *y));
+    }
+    flush(&mut tj, c);
+    c.extend_from_slice(b"ET\n");
+}
+
 fn write(
     pages: &[Page],
     anchors: &layout::Anchors,
@@ -452,24 +529,7 @@ fn write(
                     );
                 }
                 Item::Image { path, rect } => {
-                    let entry = match image_names.get(path) {
-                        Some(e) => Some(e.clone()),
-                        None => match pictures.get(path).cloned() {
-                            Some((name, bytes, _)) => match crate::image_xobject(&mut doc, &name, &bytes) {
-                                Ok((r, _)) => {
-                                    let e = (format!("Im{}", image_names.len() + 1), r);
-                                    image_names.insert(path.clone(), e.clone());
-                                    Some(e)
-                                }
-                                Err(e) => {
-                                    notes.push(format!("{path}: the picture could not be embedded ({e})"));
-                                    None
-                                }
-                            },
-                            None => None,
-                        },
-                    };
-                    if let Some((name, _)) = entry {
+                    if let Some((name, _)) = image_entry(&mut doc, &mut image_names, pictures, path, notes) {
                         c.extend(format!("q {} 0 0 {} {} {} cm /{name} Do Q\n", num(rect[2]), num(rect[3]), num(rect[0]), num(rect[1])).bytes());
                         if !used_images.contains(&name) {
                             used_images.push(name);
@@ -484,44 +544,7 @@ fn write(
                         }
                         FaceId::Program(i) => format!("@P{i}"),
                     };
-                    c.extend(format!("BT {} {} {} rg /{resource} {} Tf\n", num(color[0]), num(color[1]), num(color[2]), num(*size)).bytes());
-                    // TJ runs: a new Tm where a glyph leaves the line, adjustments where shaping
-                    // moved it from where the font's own advance would put it.
-                    let mut pen: Option<(f64, f64)> = None;
-                    let mut tj = String::new();
-                    let flush = |tj: &mut String, c: &mut Vec<u8>| {
-                        if !tj.is_empty() {
-                            c.extend(format!("[{tj}] TJ\n").bytes());
-                            tj.clear();
-                        }
-                    };
-                    for (g, [x, y]) in glyphs {
-                        let code = match face {
-                            FaceId::Std(_) => format!("{:02X}", g.id),
-                            FaceId::Program(i) => match maps.entry(*i).or_default().cid(g.id, &g.text) {
-                                Some(cid) => format!("{cid:04X}"),
-                                None => continue,
-                            },
-                        };
-                        match pen {
-                            Some((px, py)) if (py - y).abs() < 0.001 => {
-                                let delta = x - px;
-                                if delta.abs() > 0.0005 {
-                                    tj.push_str(&format!(" {} ", num(-delta * 1000.0 / size)));
-                                }
-                            }
-                            _ => {
-                                flush(&mut tj, &mut c);
-                                c.extend(format!("1 0 0 1 {} {} Tm\n", num(*x), num(*y)).bytes());
-                            }
-                        }
-                        tj.push('<');
-                        tj.push_str(&code);
-                        tj.push('>');
-                        pen = Some((x + fonts.font_advance(*face, g.id) * size, *y));
-                    }
-                    flush(&mut tj, &mut c);
-                    c.extend_from_slice(b"ET\n");
+                    glyph_run(&mut c, &resource, (*face, *size, *color), glyphs, &mut maps, fonts);
                 }
             }
         }
