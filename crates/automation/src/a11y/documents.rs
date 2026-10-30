@@ -5,7 +5,7 @@ impl Automation {
         let path = self.resolve(a.str("path")?, true)?;
         let ext = path.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
         let format = pdfcraft_engine::compare::OfficeFormat::from_extension(&ext)
-            .ok_or_else(|| ToolError::InvalidArgs(format!("unsupported extension {ext:?} (docx, xlsx, pptx, html or rtf)")))?;
+            .ok_or_else(|| ToolError::InvalidArgs(format!("unsupported extension {ext:?} (docx, xlsx, pptx, html, rtf or md)")))?;
         // Excel: one sheet for the whole document (the default) or a sheet per page.
         let sheets = match (a.opt_str("sheets")?, format) {
             (None, _) => pdfcraft_engine::compare::XlsxSheets::default(),
