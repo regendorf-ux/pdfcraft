@@ -477,6 +477,42 @@ fn glyph_run(
     c.extend_from_slice(b"ET\n");
 }
 
+/// The pages' shared font dictionary: the standard faces, and the book's own faces embedded for the
+/// glyphs used; the resource name each program face got.
+fn embed_fonts(
+    doc: &mut Document,
+    std_names: &HashMap<pdfcraft_fonts::Std14, String>,
+    maps: HashMap<usize, Mapping>,
+    fonts: &Fonts,
+    notes: &mut Vec<String>,
+) -> (ObjRef, HashMap<usize, String>) {
+    let mut font_dict = Dict::new();
+    for (s, name) in std_names {
+        let mut f = Dict::new();
+        f.set(b"Type".to_vec(), Object::name("Font"));
+        f.set(b"Subtype".to_vec(), Object::name("Type1"));
+        f.set(b"BaseFont".to_vec(), Object::name(s.base_font()));
+        f.set(b"Encoding".to_vec(), Object::name("WinAnsiEncoding"));
+        let r = doc.add(f);
+        font_dict.set(name.as_bytes().to_vec(), Object::Ref(r));
+    }
+    let mut program_names: HashMap<usize, String> = HashMap::new();
+    let mut order: Vec<_> = maps.into_iter().collect();
+    order.sort_by_key(|(i, _)| *i);
+    for (i, map) in order {
+        let p = &fonts.programs[i];
+        let family: String = p.family.chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_')).collect();
+        let family = if family.is_empty() { format!("BookFont{i}") } else { family };
+        match pdfcraft_fonts::embedding::embed_mapping(doc, &mut font_dict, &p.bytes, &family, &map.order) {
+            Ok(name) => {
+                program_names.insert(i, name);
+            }
+            Err(e) => notes.push(format!("the font {} could not be embedded ({e}); its text is missing", p.family)),
+        }
+    }
+    (doc.add(font_dict), program_names)
+}
+
 fn write(
     pages: &[Page],
     anchors: &layout::Anchors,
@@ -550,32 +586,7 @@ fn write(
         }
         contents.push((c, used_images));
     }
-    // Fonts: one shared resource dictionary.
-    let mut font_dict = Dict::new();
-    for (s, name) in &std_names {
-        let mut f = Dict::new();
-        f.set(b"Type".to_vec(), Object::name("Font"));
-        f.set(b"Subtype".to_vec(), Object::name("Type1"));
-        f.set(b"BaseFont".to_vec(), Object::name(s.base_font()));
-        f.set(b"Encoding".to_vec(), Object::name("WinAnsiEncoding"));
-        let r = doc.add(f);
-        font_dict.set(name.as_bytes().to_vec(), Object::Ref(r));
-    }
-    let mut program_names: HashMap<usize, String> = HashMap::new();
-    let mut order: Vec<_> = maps.into_iter().collect();
-    order.sort_by_key(|(i, _)| *i);
-    for (i, map) in order {
-        let p = &fonts.programs[i];
-        let family: String = p.family.chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_')).collect();
-        let family = if family.is_empty() { format!("BookFont{i}") } else { family };
-        match pdfcraft_fonts::embedding::embed_mapping(&mut doc, &mut font_dict, &p.bytes, &family, &map.order) {
-            Ok(name) => {
-                program_names.insert(i, name);
-            }
-            Err(e) => notes.push(format!("the font {} could not be embedded ({e}); its text is missing", p.family)),
-        }
-    }
-    let fonts_ref = doc.add(font_dict);
+    let (fonts_ref, program_names) = embed_fonts(&mut doc, &std_names, maps, fonts, notes);
     // Pages.
     let mut page_refs = Vec::with_capacity(pages.len());
     for (page, (mut c, images)) in pages.iter().zip(contents) {
