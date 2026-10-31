@@ -58,23 +58,27 @@ fn choosing_a_family_keeps_row_steps() {
     assert!(close(&s, &[12.0, 12.0]), "{s:?}");
 }
 
-/// Rows of 10 pt text at baselines 700, 688, 668 and 656: a 12 pt row step, and an 8 pt gap
-/// before the third row (step 20). A 10 pt spacing replaces that gap: the third row moves
-/// down 2 pt to 666 and the fourth with it to 654, so the steps are 12, 22, 12. Applied again
+/// Rows of 10 pt text at baselines 700, 688, 672 and 660: a 12 pt row step, and a 4 pt gap
+/// before the third row (step 16, still one paragraph: a gap of 1.5 rows is the next one). A
+/// 10 pt spacing replaces that gap: the third row moves
+/// down 6 pt to 666 and the fourth with it to 654, so the steps are 12, 22, 12. Applied again
 /// to the result the gap is already 10, so nothing moves. Before, the spacing was added on top
 /// of the gap and before every row: 22, 30, 22 the first time, and growing each time after.
 /// A 0 pt spacing takes the gap away: 12, 12, 12.
 #[test]
 fn reapplying_paragraph_spacing_replaces_the_gap() {
-    let source = "BT /F1 10 Tf 72 700 Td (One) Tj 0 -12 Td (Two) Tj 0 -20 Td (Three) Tj 0 -12 Td (Four) Tj ET";
+    let source = "BT /F1 10 Tf 72 700 Td (One) Tj 0 -12 Td (Two) Tj 0 -16 Td (Three) Tj 0 -12 Td (Four) Tj ET";
     let draft = Some("One\nTwo\nThree\nFour");
     let ten = text::BlockStyle { paragraph_spacing: Some(10.0), ..Default::default() };
     let mut doc = page(source);
     text::rewrite_block(&mut doc, 0, 0, draft, &ten).unwrap();
     let s = steps(&doc);
     assert!(close(&s, &[12.0, 22.0, 12.0]), "first time: {s:?}");
+    // The 22 pt step is wider than a row step and a half, so the reopened page reads the third
+    // row as the next paragraph: the spacing applied again to the first one changes nothing.
     let mut doc = reopen(&doc);
-    text::rewrite_block(&mut doc, 0, 0, draft, &ten).unwrap();
+    let first = text::text_blocks(&doc, 0).unwrap()[0].editor_text.clone();
+    text::rewrite_block(&mut doc, 0, 0, Some(&first), &ten).unwrap();
     let s = steps(&doc);
     assert!(close(&s, &[12.0, 22.0, 12.0]), "again: {s:?}");
     let mut doc = page(source);

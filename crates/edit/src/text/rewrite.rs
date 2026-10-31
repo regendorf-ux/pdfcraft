@@ -575,7 +575,7 @@ struct LineWriter<'a> {
 /// Where a wrapped line stands in its paragraph.
 #[derive(Clone, Copy)]
 struct LineRow {
-    /// The last line of its paragraph (not justified).
+    /// The last line of the text (not justified).
     last: bool,
     /// The first line of a paragraph after the first.
     starts_paragraph: bool,
@@ -723,8 +723,9 @@ impl LineWriter<'_> {
                 if i > 0 && !soft {
                     row = row.saturating_add(1);
                 }
-                // Every line but a paragraph's last is justified.
-                let last = i + 1 >= wrapped.len() || starts.get(i + 1).copied().unwrap_or(true);
+                // Every line but the last is justified: a line break in the draft separates the rows
+                // of one paragraph, as the paragraph editor sends them, not paragraphs.
+                let last = i + 1 >= wrapped.len();
                 let pos = LineRow { last, starts_paragraph: starts.get(i).copied().unwrap_or(false) };
                 self.write_line(i, line, (row, *soft, *gap), pos, cursor, ops)
             })
