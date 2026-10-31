@@ -227,13 +227,13 @@ impl PdfCraftApp {
     fn undo_in_page_box(&mut self) -> bool {
         let Some(ctx) = self.ctx.clone() else { return false };
         let Some(view) = self.active.and_then(|i| self.views.get_mut(i)) else { return false };
-        let (doc, key) = (view.id, view.view_key());
+        let (doc, place) = (view.id, view.place());
         if let Some(ed) = view.line_editor.as_mut().filter(|ed| ed.has_unsaved_text()) {
-            ed.claim_typing(&ctx, doc, key);
-            let Some(text) = typing_step(&ctx, crate::edit_text_ui::input_id(key), &ed.text, true) else { return false };
+            ed.claim_typing(&ctx, doc, place);
+            let Some(text) = typing_step(&ctx, crate::edit_text_ui::input_id(place), &ed.text, true) else { return false };
             let before = std::mem::replace(&mut ed.text, text);
             ed.selection = None;
-            ed.follow_typed_rows(&ctx, &before, key);
+            ed.follow_typed_rows(&ctx, &before, place);
             return true;
         }
         if let Some(d) = view.content.draft.as_mut().filter(|d| d.has_unapplied_typing()) {
@@ -262,13 +262,13 @@ impl PdfCraftApp {
     fn redo_in_page_box(&mut self) -> bool {
         let Some(ctx) = self.ctx.clone() else { return false };
         let Some(view) = self.active.and_then(|i| self.views.get_mut(i)) else { return false };
-        let (doc, key) = (view.id, view.view_key());
+        let (doc, place) = (view.id, view.place());
         if let Some(ed) = view.line_editor.as_mut() {
-            ed.claim_typing(&ctx, doc, key);
-            let Some(text) = typing_step(&ctx, crate::edit_text_ui::input_id(key), &ed.text, false) else { return ed.has_unsaved_text() };
+            ed.claim_typing(&ctx, doc, place);
+            let Some(text) = typing_step(&ctx, crate::edit_text_ui::input_id(place), &ed.text, false) else { return ed.has_unsaved_text() };
             let before = std::mem::replace(&mut ed.text, text);
             ed.selection = None;
-            ed.follow_typed_rows(&ctx, &before, key);
+            ed.follow_typed_rows(&ctx, &before, place);
             return true;
         }
         if let Some(d) = view.content.draft.as_mut() {
@@ -346,7 +346,7 @@ impl PdfCraftApp {
     /// text.
     pub(crate) fn page_box_focused(&self, ctx: &egui::Context) -> bool {
         let focused = ctx.memory(|m| m.focused());
-        let paragraph = self.active.and_then(|i| self.views.get(i)).map(|v| crate::edit_text_ui::input_id(v.view_key()));
+        let paragraph = self.active.and_then(|i| self.views.get(i)).map(|v| crate::edit_text_ui::input_id(v.place()));
         focused.is_some() && (focused == paragraph || focused == Some(crate::content_ui::input_id()))
     }
 
@@ -356,10 +356,10 @@ impl PdfCraftApp {
     pub(crate) fn page_box_can_redo(&self, ctx: &egui::Context) -> bool {
         let Some(view) = self.active.and_then(|i| self.views.get(i)) else { return false };
         let focused = ctx.memory(|m| m.focused());
-        let (id, text) = if focused == Some(crate::edit_text_ui::input_id(view.view_key()))
+        let (id, text) = if focused == Some(crate::edit_text_ui::input_id(view.place()))
             && let Some(ed) = &view.line_editor
         {
-            (crate::edit_text_ui::input_id(view.view_key()), &ed.text)
+            (crate::edit_text_ui::input_id(view.place()), &ed.text)
         } else if focused == Some(crate::content_ui::input_id())
             && let Some(d) = &view.content.draft
         {
@@ -377,7 +377,7 @@ impl PdfCraftApp {
         let Some(ctx) = &self.ctx else { return false };
         let Some(view) = self.active.and_then(|i| self.views.get(i)) else { return false };
         if let Some(ed) = &view.line_editor {
-            return has_typing_to_redo(ctx, crate::edit_text_ui::input_id(view.view_key()), &ed.text);
+            return has_typing_to_redo(ctx, crate::edit_text_ui::input_id(view.place()), &ed.text);
         }
         view.content.draft.as_ref().is_some_and(|d| has_typing_to_redo(ctx, crate::content_ui::input_id(), &d.text))
     }
