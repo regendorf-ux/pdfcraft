@@ -837,6 +837,25 @@ fn splice_with_marker(
     data
 }
 
+/// The source run each part of the draft is styled from: the ones given, which must cover the draft
+/// in order, on character boundaries, from the block's runs, or else the edit's own.
+fn draft_sources(block: &TextBlock, draft: &str, style: &BlockStyle) -> Result<Vec<(std::ops::Range<usize>, usize)>, EditError> {
+    if style.sources.is_empty() {
+        return Ok(block.edited_spans(draft));
+    }
+    let mut at = 0;
+    for (range, source) in &style.sources {
+        if range.start != at || range.start >= range.end || draft.get(range.clone()).is_none() || !block.lines.contains(source) {
+            return Err(EditError::Invalid("the text's style sources must cover it in order with the paragraph's own runs".into()));
+        }
+        at = range.end;
+    }
+    if at != draft.len() {
+        return Err(EditError::Invalid("the text's style sources must cover it in order with the paragraph's own runs".into()));
+    }
+    Ok(style.sources.clone())
+}
+
 /// Rewrite visual rows while keeping the source style on each surviving character. Resource
 /// names may differ between Unicode subsets of the same face; encoding searches those subsets.
 pub(crate) fn rewrite_styled_block(
@@ -855,22 +874,7 @@ pub(crate) fn rewrite_styled_block(
     }
     let ranges = validated_ranges(draft, style)?;
     let source_count = lines.len();
-    // Given sources must cover the draft in order, on character boundaries, from the block's runs.
-    let sources = if style.sources.is_empty() {
-        block.edited_spans(draft)
-    } else {
-        let mut at = 0;
-        for (range, source) in &style.sources {
-            if range.start != at || range.start >= range.end || draft.get(range.clone()).is_none() || !block.lines.contains(source) {
-                return Err(EditError::Invalid("the text's style sources must cover it in order with the paragraph's own runs".into()));
-            }
-            at = range.end;
-        }
-        if at != draft.len() {
-            return Err(EditError::Invalid("the text's style sources must cover it in order with the paragraph's own runs".into()));
-        }
-        style.sources.clone()
-    };
+    let sources = draft_sources(block, draft, style)?;
     let styled = apply_range_styles(first, lines, sources, &ranges, style);
     let lines = styled.lines.as_slice();
     let styled_spans = styled.spans;
